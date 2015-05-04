@@ -1,18 +1,7 @@
-# Build and Release Folders
-bin/
-bin-debug/
-bin-release/
-bin-libs/
-libs/
-
-# Other files and folders
-.settings/
-.actionScriptProperties
-.flexProperties
+#node_modules
+.DS_Store
+tests/**/*.js
+scripts/**/*.js
 tags
-assets
-build.xml
-
-# Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
-# should NOT be excluded as they contain compiler settings and other important
-# information for Eclipse / Flash Builder.
+.tscache
+node_modules
