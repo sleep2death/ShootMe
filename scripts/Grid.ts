@@ -1,12 +1,18 @@
+var ndarray = require("ndarray");
+var createPlanner = require("l1-path-finder");
 class Grid {
-    static CELL_SIZE = 16;
+    static CELL_SIZE = 2;
 
     private _col: number = 0;
     private _row: number = 0;
     private _widthPx: number = 0;
     private _heightPx: number = 0;
 
-    private map: Array<Array<number>> = new Array<Array<number>>();
+    private map: number[] = [];
+
+    getMap(): number[] {
+        return this.map;
+    }
 
     getCol(): number {
         return this._col;
@@ -42,19 +48,24 @@ class Grid {
         this.buildCells(w, h);
     }
 
+    public mapData;
+    public planner;
     buildCells(w: number, h: number) {
         this._col = Math.ceil(w / Grid.CELL_SIZE);
         this._row = Math.ceil(h / Grid.CELL_SIZE);
         this._widthPx = this._col * Grid.CELL_SIZE;
         this._heightPx = this._col * Grid.CELL_SIZE;
 
-        this.map = new Array<Array<number>>(this._col);
         for (var col: number = 0; col < this._col; col++) {
-            this.map[col] = new Array<number>(this._row);
             for (var row = 0; row < this._row; row++) {
-                this.map[col][row] = 0;
+                this.map.push(0);
             }
         }
+        this.mapData = ndarray(this.map, [this._col, this._row]);
+    }
+
+    cookMap() {
+        this.planner = createPlanner(this.mapData);
     }
 
     toString() {

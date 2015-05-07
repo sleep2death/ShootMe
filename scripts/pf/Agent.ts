@@ -2,8 +2,9 @@ module PF {
     export class Agent extends RadialPotentialField {
 
         static DEFAULT_TRAIL_LENGTH: number = 0;
+        static DEFAULT_TRAIL_POTENTIAL: number = 0;
 
-        subtractSelfPotentialFromDynamicsMapSum: boolean;
+        subtractSelfPotentialFromDynamicsMapSum: boolean = false;
 
         private _cachedPoint: Point;
         private _mapTilesWidth: number;
@@ -19,8 +20,9 @@ module PF {
 
         debugDrawColor: number;
 
-        constructor(static_potentials_map: Array<StaticPotentialsMap> = null, dynamic_potentials_map: Array<DynamicPotentialsMap> = null, subtract_self_potential_from_dynamic_maps_sum: boolean = true) {
+        constructor(static_potentials_map: Array<StaticPotentialsMap> = null, dynamic_potentials_map: Array<DynamicPotentialsMap> = null, subtract_self_potential_from_dynamic_maps_sum: boolean = false) {
             super();
+            this.setPotential(10);
             this._cachedPoint = new Point();
             this._mapTilesWidth = (static_potentials_map) ? static_potentials_map[0].getTilesWidth() : 0;
             this._mapTilesHeight = (static_potentials_map) ? static_potentials_map[0].getTilesHeight() : 0;
@@ -118,10 +120,12 @@ module PF {
 
         private getTrailPotential(map_x: number, map_y: number): number {
             var potential: number = 0;
+            var count: number = 0;
             for (var trail: LinkedListNode = this._trails.head; trail; trail = trail.next) {
                 var pfaTrail: AgentTrail = <AgentTrail>trail;
                 if (pfaTrail.worldX == map_x && pfaTrail.worldY == map_y) {
                     potential += pfaTrail.potential;
+                    count++;
                 }
             }
             return potential;
@@ -183,20 +187,20 @@ module PF {
                 }
             }
 
-            if (this._cachedPoint.x == this.position.x && this._cachedPoint.y == this.position.y) {
-                //return this._cachedPoint;
-                if (this._trails.length > this.trailLength) {// zapewnia stala dlugosc listy sladow i reuzywa ponownie starego sladu
-                    var recycledTrail: AgentTrail = <AgentTrail>this._trails.head;
-                    this._trails.removeNode(recycledTrail);// usuwa go z poczatku listy
-                    recycledTrail.worldX = this.position.x;
-                    recycledTrail.worldY = this.position.y;
-                    this._trails.appendNode(recycledTrail);// dodaje go na koniec listy
-                }
-                else if (this.trailLength > 0) {
-                    this._trails.appendNode(new AgentTrail(this.position.x, this.position.y, this.type * this.getPotential()));
-                }
-                this._cachedPoint.setTo(this.position.x, this.position.y);
-            }
+            // if (this._cachedPoint.x == this.position.x && this._cachedPoint.y == this.position.y) {
+            //     //return this._cachedPoint;
+            //     if (this._trails.length > this.trailLength) {// zapewnia stala dlugosc listy sladow i reuzywa ponownie starego sladu
+            //         var recycledTrail: AgentTrail = <AgentTrail>this._trails.head;
+            //         this._trails.removeNode(recycledTrail);// usuwa go z poczatku listy
+            //         recycledTrail.worldX = this.position.x;
+            //         recycledTrail.worldY = this.position.y;
+            //         this._trails.appendNode(recycledTrail);// dodaje go na koniec listy
+            //     }
+            //     else if (this.trailLength > 0) {
+            //         this._trails.appendNode(new AgentTrail(this.position.x, this.position.y, this.type * this.getPotential()));
+            //     }
+            //     this._cachedPoint.setTo(this.position.x, this.position.y);
+            // }
             return this._cachedPoint;
         }
 
@@ -211,9 +215,20 @@ module PF {
             this.moveToPosition(p.x, p.y);
         }
 
-        moveToPosition(new_x: number, new_y: number): void {
+        moveToPosition(new_x: number, new_y: number, add_trail: boolean = false): void {
             this.position.x = new_x;
             this.position.y = new_y;
+            if (add_trail && Agent.DEFAULT_TRAIL_LENGTH > 0) {
+                if (this._trails.length < Agent.DEFAULT_TRAIL_LENGTH) {
+                    this._trails.appendNode(new AgentTrail(new_x, new_y, Agent.DEFAULT_TRAIL_POTENTIAL));
+                } else {
+                    var temp = <AgentTrail>this._trails.pop();
+                    temp.worldX = new_x;
+                    temp.worldY = new_y;
+                    temp.potential = Agent.DEFAULT_TRAIL_POTENTIAL;
+                    this._trails.unshift(temp);
+                }
+            }
         }
     }
 

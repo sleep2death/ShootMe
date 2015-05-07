@@ -73,6 +73,24 @@ module PF {
             return null;
         }
 
+        pop(): LinkedListNode {
+            if (this.length > 0) {
+                var node: LinkedListNode = this.tail;
+                this.tail = node.prev;
+                if (this.tail != null) this.tail.next = null;
+
+                node.prev = null;
+                node.next = null;
+                --this.length;
+                return node;
+            }
+            return null;
+        }
+
+        unshift(node: LinkedListNode): void {
+            this.insertBeforeNode(this.head, node);
+        }
+
         fetchRandom(): LinkedListNode {
             if (this.length > 0) {
                 var node: LinkedListNode = this.head;

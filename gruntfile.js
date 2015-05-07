@@ -9,17 +9,19 @@ module.exports = function(grunt) {
             build: "./build/WonderCraft-min.js",
         },
         refs: {
-            pf: './scripts/pf/pf_references.ts',
+            ref: './scripts/_references.ts',
+            l1: './typings/l1-path-finder/l1-path-finder.d.ts',
             phaser: './typings/phaser/phaser.d.ts',
             qunit: './typings/qunit/qunit.d.ts',
+            browserify: './typings/browserify/browserify.d.ts'
         },
         ts: {
             test: {
-                src: ["<%= refs.pf %>", "<%= refs.qunit %>", "<%= test %>"],
+                src: ["<%= refs.browserify %>", "<%= refs.pf %>", "<%= refs.qunit %>", "<%= test %>"],
                 out: "<%= dest.test %>",
             },
             dev: {
-                src: ["<%= refs.pf %>", "<%= refs.phaser %>", "<%= src %>"],
+                src: ["<%= refs.browserify %>", "<%= refs.ref %>", "<%= refs.phaser %>", "<%= src %>"],
                 out: "<%= dest.dev %>",
             },
             options: {
@@ -39,7 +41,7 @@ module.exports = function(grunt) {
         watch: {
             dev: {
                 files: ['<%= src %>'],
-                tasks: ['clean:dev', 'ts:dev', 'clean:js'],
+                tasks: ['clean:dev', 'ts:dev', 'browserify:dev', 'clean:js'],
                 options: {},
             },
             tests: {
@@ -48,11 +50,34 @@ module.exports = function(grunt) {
                 options: {},
             },
         },
+        browserify: {
+            dev: {
+                files: {
+                    "<%= dest.dev %>": [" <%= dest.dev %> "]
+                }
+            },
+
+            options: {}
+        },
+        'http-server': {
+            'dev': {
+                root: "./",
+                port: 8282,
+                host: "0.0.0.0",
+                cache: -1,
+                showDir: true,
+                autoIndex: true,
+                ext: "html",
+                runInBackground: true
+            }
+        }
     });
 
-    grunt.loadNpmTasks('grunt-typescript');
     grunt.loadNpmTasks('grunt-ts');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-watch');
+    grunt.loadNpmTasks('grunt-browserify');
+    grunt.loadNpmTasks('grunt-http-server');
+
     grunt.registerTask("default", ["watch:dev"]);
 };

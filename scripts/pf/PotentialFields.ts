@@ -1,7 +1,7 @@
 module PF {
     export class PotentialField extends LinkedListNode {
-        static PF_TYPE_ATTRACT: number = 1;
-        static PF_TYPE_REPEL: number = -1;
+        static PF_TYPE_ATTRACT: number = -1;
+        static PF_TYPE_REPEL: number = 1;
 
         position: Point;
         type: number;

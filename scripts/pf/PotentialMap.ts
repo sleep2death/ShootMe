@@ -32,18 +32,22 @@ module PF {
             this._fields.removeAllNodes()
         }
 
-        /**
-         * Zwraca wypadkowy potencjal na wskazanej pozycji.
-         * @param x
-         * @param y
-         * @return
-         */
         getPotential(map_x: number, map_y: number): number {
             var potential: number = 0;
             for (var field: PotentialField = (<PotentialField>this._fields.head); field; field = (<PotentialField>field.next)) {
                 potential += field.getLocalPotential(map_x - field.position.x, map_y - field.position.y);
             }
             return potential;
+        }
+
+        public debugDraw(game: Phaser.Game, graphics: Phaser.Sprite) {
+            while (graphics.children.length > 0) {
+                var child: Phaser.Text = <Phaser.Text>graphics.getChildAt(0);
+                child.destroy();
+            }
+            var potential: number = 0;
+            for (var field: PotentialField = (<PotentialField>this._fields.head); field; field = (<PotentialField>field.next)) {
+            }
         }
     }
 
@@ -97,22 +101,20 @@ module PF {
             }
         }
 
-        public debugDraw(game: Phaser.Game, graphics: Phaser.Sprite) {
-            while (graphics.children.length > 0) {
-                var child: Phaser.Text = <Phaser.Text>graphics.getChildAt(0);
-                child.destroy();
-            }
+        public debugDraw(game: Phaser.Game, graphics: Phaser.Graphics) {
+            graphics.clear();
+
             for (var x: number = 0; x < this._tilesWidth; x++) {
                 for (var y: number = 0; y < this._tilesHeight; y++) {
                     if (this._map[x][y] != 0) {
-                        var p = this._map[x][y];
-                        var txt = game.make.text(x * Grid.CELL_SIZE, y * Grid.CELL_SIZE, p.toString(), { fontSize: 12 });
-                        txt.alpha = 0.5;
-                        txt.addColor(p <= 0 ? '#00FF00' : '#0000FF', 0);
-                        graphics.addChild(txt);
+                        graphics.beginFill(0xFF0000, 0.5);
+                        graphics.drawRect(x * Grid.CELL_SIZE, y * Grid.CELL_SIZE, Grid.CELL_SIZE, Grid.CELL_SIZE);
+                        graphics.endFill();
                     }
                 }
             }
+
+            graphics.cacheAsBitmap = true;
         }
     }
 }

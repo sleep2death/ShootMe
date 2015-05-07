@@ -11,25 +11,27 @@
     "filesGlob": [
         "./scripts/**/*.ts",
         "./tests/**/*.ts",
-        "./typings/**/*.d.ts"
+        "./scripts/_references.ts",
+        "./typings/phaser/phaser.d.ts",
+        "./typings/qunit/qunit.d.ts",
+        "./typings/l1-path-finder/l1-path-finder.d.ts",
+        "./typings/browserify/browserify.d.ts"
     ],
     "files": [
         "./scripts/Grid.ts",
         "./scripts/WonderCraft.ts",
+        "./scripts/_references.ts",
+        "./scripts/math/SeedRandom.ts",
         "./scripts/pf/Agent.ts",
         "./scripts/pf/LinkedList.ts",
         "./scripts/pf/Point.ts",
         "./scripts/pf/PotentialFields.ts",
         "./scripts/pf/PotentialMap.ts",
-        "./scripts/pf/pf_references.ts",
+        "./scripts/utils/SeedRandom.ts",
         "./tests/LinkedListTests.ts",
-        "./typings/browserify/browserify.d.ts",
-        "./typings/node/node.d.ts",
-        "./typings/phaser/p2.d.ts",
-        "./typings/phaser/phaser.comments.d.ts",
         "./typings/phaser/phaser.d.ts",
-        "./typings/phaser/pixi.comments.d.ts",
-        "./typings/phaser/pixi.d.ts",
-        "./typings/qunit/qunit.d.ts"
+        "./typings/qunit/qunit.d.ts",
+        "./typings/l1-path-finder/l1-path-finder.d.ts",
+        "./typings/browserify/browserify.d.ts"
     ]
 }
