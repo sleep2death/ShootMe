@@ -1,7 +1,7 @@
 {
     "version": "1.5.0-alpha",
     "compilerOptions": {
-        "target": "es3",
+        "target": "es5",
         "module": "commonjs",
         "declaration": false,
         "noImplicitAny": false,
@@ -9,29 +9,17 @@
         "noLib": false
     },
     "filesGlob": [
-        "./scripts/**/*.ts",
-        "./tests/**/*.ts",
-        "./scripts/_references.ts",
+        "./src/**/*.ts",
         "./typings/phaser/phaser.d.ts",
-        "./typings/qunit/qunit.d.ts",
-        "./typings/l1-path-finder/l1-path-finder.d.ts",
         "./typings/browserify/browserify.d.ts"
     ],
     "files": [
-        "./scripts/Grid.ts",
-        "./scripts/WonderCraft.ts",
-        "./scripts/_references.ts",
-        "./scripts/math/SeedRandom.ts",
-        "./scripts/pf/Agent.ts",
-        "./scripts/pf/LinkedList.ts",
-        "./scripts/pf/Point.ts",
-        "./scripts/pf/PotentialFields.ts",
-        "./scripts/pf/PotentialMap.ts",
-        "./scripts/utils/SeedRandom.ts",
-        "./tests/LinkedListTests.ts",
+        "./src/WonderCraft.ts",
+        "./src/_references.ts",
+        "./src/utils/Math.ts",
+        "./src/wonder/TeamAndSquad.ts",
+        "./src/wonder/UnitAndAgent.ts",
         "./typings/phaser/phaser.d.ts",
-        "./typings/qunit/qunit.d.ts",
-        "./typings/l1-path-finder/l1-path-finder.d.ts",
         "./typings/browserify/browserify.d.ts"
     ]
 }

@@ -1,7 +1,5 @@
-#node_modules
+node_modules
 .DS_Store
-tests/**/*.js
-scripts/**/*.js
+src/**/*.js
 tags
 .tscache
-node_modules
