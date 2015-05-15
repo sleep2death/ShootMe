@@ -443,8 +443,6 @@ var Wonder;
                     this.unit.move();
                 }
                 else {
-                    if (this.unit.isMoving)
-                        console.log("move to attack");
                     this.unit.attack();
                 }
             }

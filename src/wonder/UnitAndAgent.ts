@@ -239,7 +239,7 @@ module Wonder {
                 if (outOfRange(this.unit, this.unit.target)) {
                     this.unit.move();
                 } else {
-                    if (this.unit.isMoving) console.log("move to attack");
+                    //if (this.unit.isMoving) console.log("move to attack");
                     this.unit.attack();
                 }
             }
