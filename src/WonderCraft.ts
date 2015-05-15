@@ -7,8 +7,8 @@ class WonderCraft {
 
 
     game: Phaser.Game;
-    teamA:Wonder.Team;
-    teamB:Wonder.Team;
+    teamA: Wonder.Team;
+    teamB: Wonder.Team;
 
     constructor() {
         //always use canvas to get better performance
@@ -18,10 +18,10 @@ class WonderCraft {
     create = (game: Phaser.Game) => {
         game.time.advancedTiming = true;
 
-        var seed = new Wonder.Random("LifeIsLikeABoxOfChocolate");
+        var seed = new Wonder.Random("TheSecretLifeOfWalterMitty");
 
-        this.teamA = Wonder.buildTestTeam(seed,"red");
-        this.teamB = Wonder.buildTestTeam(seed,"blue");
+        this.teamA = Wonder.buildTestTeam(seed, "red");
+        this.teamB = Wonder.buildTestTeam(seed, "blue");
         //make enemy, and for WAR!!!
         this.teamA.enemy = this.teamB;
         this.teamB.enemy = this.teamA;
@@ -29,13 +29,19 @@ class WonderCraft {
         this.teamA.side = Wonder.TEAM_SIDE_LEFT;
         this.teamB.side = Wonder.TEAM_SIDE_RIGHT;
 
-        Wonder.initDebugDraw(game, this.teamA, Wonder.TEAM_SIDE_LEFT);
-        Wonder.initDebugDraw(game, this.teamB, Wonder.TEAM_SIDE_RIGHT);
+        Wonder.initDebugDraw(game, this.teamA);
+        Wonder.initDebugDraw(game, this.teamB);
     }
 
+    count: number = 0;
+
     update = (game: Phaser.Game) => {
-        this.teamA.update();
-        this.teamB.update();
+        if (this.count > 300) {
+            this.teamA.update();
+            this.teamB.update();
+        }
+
+        this.count++;
     }
 
     render = (game: Phaser.Game) => {

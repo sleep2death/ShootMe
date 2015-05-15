@@ -31,6 +31,11 @@ module Wonder {
         init(): void;
         update(time: number): void;
         render(time: number): void;
+
+        //actions
+        move(): void;
+        follow(): void;
+        attack(): void;
     }
 
     export interface IAgent {
@@ -38,6 +43,9 @@ module Wonder {
 
         x: number;
         y: number;
+        getPosition(): Vec2;
+        setPosition(v: Vec2): void;
+        velocity: Vec2;
 
         update(time: number);
     }
@@ -78,7 +86,7 @@ module Wonder {
 
         constructor(id: number) {
             this.id = id;
-            this.init()
+            this.init();
         }
 
         init() {
@@ -93,6 +101,76 @@ module Wonder {
         render(time: number) {
             this.displayer.x = this.agent.x;
             this.displayer.y = this.agent.y;
+        }
+
+        separation: Vec2 = new Vec2(0, 0);
+
+        move() {
+            this.isMoving = true;
+            this.isAttacking = false;
+
+            var dx: number = this.target.agent.x - this.agent.x;
+            var dy: number = this.target.agent.y - this.agent.y;
+
+            var vec2: Vec2 = normalize(dx, dy);
+            this.agent.velocity = vec2.mul(2);
+
+            //give nearby agents a random speed fix per 30 frame, to separate them
+            if (this.squad.team.frameCount % 35 === 0) {
+                var team = this.squad.team;
+                var neighbour = <Squad>Lill.getHead(team.squads);
+                var neighboursCount: number = 0;
+
+                while (neighbour) {
+                    if (!neighbour.hero.isDead && !neighbour.hero.isMoving) {
+                        var d = getUnitDistance(neighbour.hero, this);
+                        if (d <= 120) {
+                            dx = this.agent.x - neighbour.hero.agent.x;
+                            dy = this.agent.y - neighbour.hero.agent.y;
+                            this.separation.x += dx;
+                            this.separation.y += dy;
+                            neighboursCount++;
+                        }
+                    }
+
+                    neighbour = <Squad>Lill.getNext(team.squads, neighbour);
+                }
+
+                if (neighboursCount > 0)
+                    this.separation = this.separation.div(neighboursCount).normalize().mul(0.75);
+                else
+                    this.separation = new Vec2(0, 0);
+            }
+
+            this.agent.velocity = this.agent.velocity.add(this.separation);
+
+            this.agent.x += this.agent.velocity.x;
+            this.agent.y += this.agent.velocity.y;
+        }
+
+        randomFollow: Vec2 = new Vec2(0, 0);
+
+        follow() {
+            this.isMoving = true;
+            this.isAttacking = false;
+
+            var hero: Hero = this.squad.hero;
+            var hero_v = this.squad.hero.agent.velocity;
+
+            //give agent a random speed fix per 10 frame, to make them acting more living
+            if (this.squad.team.frameCount % 10 === 0) {
+                var seed: Wonder.Random = this.squad.team.seed;
+                this.randomFollow.x = seed.nextRange(-0.15, 0.15, false);
+                this.randomFollow.y = seed.nextRange(-0.15, 0.15, false);
+            }
+            this.agent.velocity = hero_v.add(this.randomFollow);
+            this.agent.x += this.agent.velocity.x;
+            this.agent.y += this.agent.velocity.y;
+        }
+
+        attack() {
+            this.isAttacking = true;
+            this.isMoving = false;
         }
     }
 
@@ -114,11 +192,31 @@ module Wonder {
         x: number;
         y: number;
 
+        pos: Vec2 = new Vec2(0, 0);
+
+        getPosition(): Vec2 {
+            this.pos.x = this.x;
+            this.pos.y = this.y;
+            return this.pos;
+        }
+
+        setPosition(v: Vec2): void {
+            this.pos = v;
+            this.x = this.pos.x;
+            this.y = this.pos.y;
+        }
+
+        velocity: Vec2;
+
         constructor(unit: IUnit) {
             this.unit = unit;
         }
 
         update(time: number) {
+            //if hero is moving, then follow him
+            if (this.unit.squad.hero.isMoving) {
+                this.unit.follow();
+            }
         }
     }
 
@@ -130,12 +228,19 @@ module Wonder {
         update(time: number) {
             //if hero is idle, then find the nearest target for him
             if (this.unit.isIdle()) {
-                var target: Hero = findNearestHero(this.unit);
+                var target: Hero = findNearestHero(<Hero>this.unit);
                 //a hero fights a hero!
                 this.unit.target = target;
-                //move to the target when out of range;
-                if (target && outOfRange(this.unit, target)) {
+                this.unit.move();
+            }
 
+            if (this.unit.target && this.unit.isMoving) {
+                //if out of the attack range, move to the target, else attack it
+                if (outOfRange(this.unit, this.unit.target)) {
+                    this.unit.move();
+                } else {
+                    if (this.unit.isMoving) console.log("move to attack");
+                    this.unit.attack();
                 }
             }
         }
@@ -144,11 +249,8 @@ module Wonder {
 
     //PATH FINDING FUNCTIONS HERE:
 
-    function getDistance(a: IUnit, b: IUnit): number {
-        var dx: number = a.agent.x - b.agent.x;
-        var dy: number = a.agent.y - b.agent.y;
-        var d: number = Math.sqrt(dx * dx + dy * dy);
-        return Math.round(d);
+    function getUnitDistance(a: IUnit, b: IUnit): number {
+        return distance(a.agent.x, a.agent.y, b.agent.x, b.agent.y);
     }
 
     //find the nearest squad based on the position of the squad's hero
@@ -163,7 +265,7 @@ module Wonder {
         while (e_squad) {
             //check the distance if the target hero is alive
             if (!e_squad.hero.isDead) {
-                var d = getDistance(e_squad.hero, hero);
+                var d = getUnitDistance(e_squad.hero, hero);
                 if (d < distance) {
                     distance = d;
                     nearest = e_squad.hero;
@@ -176,8 +278,8 @@ module Wonder {
     }
 
     function outOfRange(attacker: IUnit, target: IUnit): boolean {
-        var d: number = getDistance(attacker, target);
-        if (d <= attacker.range) return false;
+        var d: number = getUnitDistance(attacker, target);
+        if (d < attacker.range) return false;
         return true;
     }
 }

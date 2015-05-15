@@ -2,13 +2,14 @@ module Wonder {
     //TODO: add destroy method to all units
     var Lill = require("lill");
     var RandomColor = require("randomcolor");
+    var vec2 = require("vec2");
     /*
     Team -> Squads -> Units/Hero -> Agent/DisplayContainer
     */
     export var TEAM_SIDE_LEFT: number = 0;
     export var TEAM_SIDE_RIGHT: number = 1;
     //fixed framerate
-    export var FRAMERATE = 1/60;
+    export var FRAMERATE = 1 / 60;
 
     //positions to hold squads
     var MAX_SQUAD_NUMBER: number = 20;
@@ -24,11 +25,11 @@ module Wonder {
 
     //attack ranges
     enum ATTACK_RANGE {
-        MELEE = 10,
-        CLOSE = 30,
-        MEDIUM = 80,
-        LONG = 150
+        MELEE = 20,
+        MEDIUM = 120,
+        LONG = 250
     }
+    var RANGES: Array<number> = [ATTACK_RANGE.MELEE, ATTACK_RANGE.MEDIUM, ATTACK_RANGE.LONG];
 
     export class Team {
         id: number;
@@ -41,6 +42,10 @@ module Wonder {
 
         debug_hue: string;
 
+        seed: Wonder.Random;
+
+        frameCount: number = 0;
+
         constructor(id: number) {
             this.id = id;
             Lill.attach(this.squads);
@@ -52,13 +57,15 @@ module Wonder {
             while (squad) {
                 squad.hero.update(FRAMERATE);
                 var unit = <Unit>Lill.getHead(squad.units);
-                while(unit){
+                while (unit) {
                     unit.update(FRAMERATE);
                     unit = <Unit>Lill.getNext(squad.units, unit);
                 }
                 squad = <Squad>Lill.getNext(this.squads, squad);
             }
-            return null;
+
+            this.frameCount++;
+            if (this.frameCount === 60) this.frameCount = 0;
         }
 
         render() {
@@ -67,13 +74,12 @@ module Wonder {
             while (squad) {
                 squad.hero.render(FRAMERATE);
                 var unit = <Unit>Lill.getHead(squad.units);
-                while(unit){
+                while (unit) {
                     unit.render(FRAMERATE);
                     unit = <Unit>Lill.getNext(squad.units, unit);
                 }
                 squad = <Squad>Lill.getNext(this.squads, squad);
             }
-            return null;
         }
 
         //get the size of the squads list
@@ -109,7 +115,7 @@ module Wonder {
         //position to hold the Squad
         position: number;
         //squad target
-        target:Squad;
+        target: Squad;
         //units
         units = {}
 
@@ -120,6 +126,11 @@ module Wonder {
             this.debug_color = debug_color;
 
             Lill.attach(this.units);
+        }
+
+        setHero(hero: Hero) {
+            this.hero = hero;
+            hero.squad = this;
         }
 
         getUnitsNumber(): number {
@@ -147,7 +158,7 @@ module Wonder {
 
     export function buildTestTeam(rnd: Random, color_hue: string = null): Team {
         var team = new Team(rnd.nextUInt());
-        var squad_number_range: number = rnd.nextRange(16, 20);
+        var squad_number_range: number = rnd.nextRange(10, 18);
         color_hue = color_hue ? color_hue : DEBUG_COLOR_HUES[rnd.nextRange(0, DEBUG_COLOR_HUES.length - 1)];
         team.debug_hue = color_hue;
 
@@ -156,28 +167,31 @@ module Wonder {
             var squad = new Squad(rnd.nextUInt(), 0);
             squad.position = SQUAD_POSITIONS[i];
 
+            var hero: Hero = new Hero(rnd.nextUInt());
+            squad.setHero(hero);
+            hero.range = RANGES[rnd.nextRange(0, RANGES.length - 1)];
+
             var unit_number_range: number = rnd.nextRange(10, 15);// two columns ~ three columns
             for (var j = 0; j < unit_number_range; j++) {
                 var unit = new Unit(j);
                 squad.addUnit(unit);
             }
 
-            var hero: Hero = new Hero(rnd.nextUInt())
-            squad.hero = hero;
-
             var rc = (<string>RandomColor({ hue: team.debug_hue })).slice(1);
             squad.debug_color = parseInt("0x" + rc);
 
             team.addSquad(squad);
+            team.seed = rnd;
         }
 
         return team;
     }
 
-    export function initDebugDraw(game: Phaser.Game, team: Team, side: number) {
+    export function initDebugDraw(game: Phaser.Game, team: Team) {
+        var side: number = team.side;
         var squad: Squad = Lill.getHead(team.squads);
         var squad_w = 1334 / 16;
-        var squad_h = (750 - 300) / 5;
+        var squad_h = (750 - 200) / 5;
         var unit_radius = 12;
         var hero_radius = 16;
         var padding = 4;
@@ -186,7 +200,7 @@ module Wonder {
             var s_col = side == 0 ? squad.position % 4 : 3 - (squad.position % 4);
             var s_row = Math.floor(squad.position / 4);
             var s_x = side == 0 ? s_col * squad_w + squad_w : 1334 - (s_col * squad_w + squad_w);
-            var s_y = s_row * squad_h + squad_h * 0.5 + 150;
+            var s_y = s_row * squad_h + squad_h * 0.5 + 100;
 
             //debug draw squad hero
             addDebugShape(game, squad.hero, hero_radius, squad.debug_color, side);
