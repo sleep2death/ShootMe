@@ -30,7 +30,7 @@ module.exports = function ( grunt ) {
 		watch: {
 			dev: {
 				files: [ 'src/**/*.ts' ],
-				tasks: [ 'clean:dev', 'ts:dev', 'browserify:dev', "copy:main" ],
+				tasks: [ 'clean:dev', 'ts:dev', 'browserify:dev', "copy:phaser", "copy:phaser_map","notify:watch" ],
 				options: {},
 			},
 		},
@@ -44,11 +44,23 @@ module.exports = function ( grunt ) {
 			options: {}
 		},
 		copy: {
-			main: {
+			phaser: {
 				src: 'node_modules/phaser/build/phaser.min.js',
 				dest: 'build/phaser.min.js',
 			},
+			phaser_map: {
+				src: 'node_modules/phaser/build/phaser.map',
+				dest: 'build/phaser.map',
+			},
 		},
+		notify: {
+			watch: {
+				options: {
+					title: 'Compile Complete', // optional
+					message: 'clean/ts/browserify/copy_phaser/ finished running', //required
+				}
+			},
+		}
 	} );
 
 	grunt.loadNpmTasks( 'grunt-ts' );
@@ -56,6 +68,7 @@ module.exports = function ( grunt ) {
 	grunt.loadNpmTasks( 'grunt-contrib-watch' );
 	grunt.loadNpmTasks( 'grunt-browserify' );
 	grunt.loadNpmTasks( 'grunt-contrib-copy' );
+	grunt.loadNpmTasks( 'grunt-notify' );
 
 	grunt.registerTask( "default", [ "watch:dev" ] );
 };

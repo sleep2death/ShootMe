@@ -105,9 +105,7 @@ var Wonder;
 })(Wonder || (Wonder = {}));
 var Wonder;
 (function (Wonder) {
-    var Lill = require("lill");
     var RandomColor = require("randomcolor");
-    var vec2 = require("vec2");
     Wonder.TEAM_SIDE_LEFT = 0;
     Wonder.TEAM_SIDE_RIGHT = 1;
     Wonder.FRAMERATE = 1 / 60;
@@ -144,86 +142,64 @@ var Wonder;
     var RANGES = [20 /* MELEE */, 120 /* MEDIUM */, 250 /* LONG */];
     var Team = (function () {
         function Team(id) {
-            this.squads = {};
+            this.squads = [];
             this.frameCount = 0;
             this.id = id;
-            Lill.attach(this.squads);
         }
         Team.prototype.update = function () {
-            var squad = Lill.getHead(this.squads);
-            while (squad) {
+            var len = this.getSquadsNumber();
+            for (var i = 0; i < len; i++) {
+                var squad = this.squads[i];
                 squad.hero.update(Wonder.FRAMERATE);
-                var unit = Lill.getHead(squad.units);
-                while (unit) {
+                var l = squad.units.length;
+                for (var j = 0; j < l; j++) {
+                    var unit = squad.units[j];
                     unit.update(Wonder.FRAMERATE);
-                    unit = Lill.getNext(squad.units, unit);
                 }
-                squad = Lill.getNext(this.squads, squad);
             }
             this.frameCount++;
             if (this.frameCount === 60)
                 this.frameCount = 0;
         };
         Team.prototype.render = function () {
-            var squad = Lill.getHead(this.squads);
-            while (squad) {
+            var len = this.getSquadsNumber();
+            for (var i = 0; i < len; i++) {
+                var squad = this.squads[i];
                 squad.hero.render(Wonder.FRAMERATE);
-                var unit = Lill.getHead(squad.units);
-                while (unit) {
+                var l = squad.units.length;
+                for (var j = 0; j < l; j++) {
+                    var unit = squad.units[j];
                     unit.render(Wonder.FRAMERATE);
-                    unit = Lill.getNext(squad.units, unit);
                 }
-                squad = Lill.getNext(this.squads, squad);
             }
         };
         Team.prototype.getSquadsNumber = function () {
-            return Lill.getSize(this.squads);
+            return this.squads.length;
         };
         Team.prototype.addSquad = function (squad) {
             squad.team = this;
-            Lill.add(this.squads, squad);
-        };
-        Team.prototype.getSquad = function (squad_id) {
-            var squad = Lill.getHead(this.squads);
-            while (squad) {
-                if (squad.id == squad_id) {
-                    return squad;
-                }
-                squad = Lill.getNext(this.squads, squad);
-            }
-            return null;
+            this.squads.push(squad);
         };
         return Team;
     })();
     Wonder.Team = Team;
     var Squad = (function () {
         function Squad(id, debug_color) {
-            this.units = {};
+            this.units = [];
             this.id = id;
             this.debug_color = debug_color;
-            Lill.attach(this.units);
         }
         Squad.prototype.setHero = function (hero) {
             this.hero = hero;
             hero.squad = this;
         };
         Squad.prototype.getUnitsNumber = function () {
-            return Lill.getSize(this.units);
+            return this.units.length;
         };
         Squad.prototype.addUnit = function (unit) {
             unit.squad = this;
             unit.team = this.team;
-            Lill.add(this.units, unit);
-        };
-        Squad.prototype.getUnit = function (unit_id) {
-            var unit = Lill.getHead(this.units);
-            while (unit) {
-                if (unit.id == unit_id) {
-                    return unit;
-                }
-                unit = Lill.getNext(this.units, unit);
-            }
-            return null;
+            this.units.push(unit);
         };
         return Squad;
     })();
@@ -256,13 +232,14 @@ var Wonder;
     Wonder.buildTestTeam = buildTestTeam;
     function initDebugDraw(game, team) {
         var side = team.side;
-        var squad = Lill.getHead(team.squads);
+        var len = team.getSquadsNumber();
         var squad_w = 1334 / 16;
         var squad_h = (750 - 200) / 5;
         var unit_radius = 12;
         var hero_radius = 16;
         var padding = 4;
-        while (squad) {
+        for (var i = 0; i < len; i++) {
+            var squad = team.squads[i];
             var s_col = side == 0 ? squad.position % 4 : 3 - (squad.position % 4);
             var s_row = Math.floor(squad.position / 4);
             var s_x = side == 0 ? s_col * squad_w + squad_w : 1334 - (s_col * squad_w + squad_w);
@@ -270,20 +247,19 @@ var Wonder;
             addDebugShape(game, squad.hero, hero_radius, squad.debug_color, side);
             squad.hero.agent.x = squad.hero.displayer.x = s_x;
             squad.hero.agent.y = squad.hero.displayer.y = s_y;
-            var unit = Lill.getHead(squad.units);
+            var l = squad.getUnitsNumber();
             var pos = 0;
             var start_x = side == 0 ? s_x - hero_radius - padding : s_x + hero_radius + padding;
             var start_y = s_y - 2 * (unit_radius + padding);
-            while (unit) {
+            for (var j = 0; j < l; j++) {
+                var unit = squad.units[j];
                 var u_x = side == 0 ? start_x - Math.floor(pos / 5) * (unit_radius + padding) : start_x + Math.floor(pos / 5) * (unit_radius + padding);
                 var u_y = start_y + pos % 5 * (unit_radius + padding);
                 addDebugShape(game, unit, unit_radius, squad.debug_color, side);
                 unit.agent.x = unit.displayer.x = u_x;
                 unit.agent.y = unit.displayer.y = u_y;
-                unit = Lill.getNext(squad.units, unit);
                 pos++;
             }
-            squad = Lill.getNext(team.squads, squad);
         }
     }
     Wonder.initDebugDraw = initDebugDraw;
@@ -312,7 +288,6 @@ var __extends = this.__extends || function (d, b) {
 };
 var Wonder;
 (function (Wonder) {
-    var Lill = require("lill");
     var Unit = (function () {
         function Unit(id) {
             this.isHero = false;
@@ -329,7 +304,7 @@ var Wonder;
         };
         Unit.prototype.init = function () {
             this.isHero = false;
-            this.agent = new UnitAgent(this);
+            this.agent = new Wonder.UnitAgent(this);
         };
         Unit.prototype.update = function (time) {
             this.agent.update(time);
@@ -341,7 +316,8 @@ var Wonder;
         Unit.prototype.move = function () {
             this.isMoving = true;
             this.isAttacking = false;
-            this.follow();
+            if (this.target === this.squad.hero)
+                this.follow();
             this.agent.x += this.agent.velocity.x;
             this.agent.y += this.agent.velocity.y;
         };
@@ -369,7 +345,7 @@ var Wonder;
         }
         Hero.prototype.init = function () {
             this.isHero = true;
-            this.agent = new HeroAgent(this);
+            this.agent = new Wonder.HeroAgent(this);
         };
         Hero.prototype.move = function () {
             this.isMoving = true;
@@ -380,11 +356,12 @@ var Wonder;
             this.agent.velocity = vec2.mul(2);
             if (this.squad.team.frameCount % 12 === 0) {
                 var team = this.squad.team;
-                var neighbour = Lill.getHead(team.squads);
+                var len = team.getSquadsNumber();
                 var neighboursCount = 0;
-                while (neighbour) {
+                for (var i = 0; i < len; i++) {
+                    var neighbour = team.squads[i];
                     if (!neighbour.hero.isDead && !neighbour.hero.isMoving) {
-                        var d = getUnitDistance(neighbour.hero, this);
+                        var d = Wonder.getUnitDistance(neighbour.hero, this);
                         if (d <= 120) {
                             dx = this.agent.x - neighbour.hero.agent.x;
                             dy = this.agent.y - neighbour.hero.agent.y;
@@ -393,7 +370,6 @@ var Wonder;
                             neighboursCount++;
                         }
                     }
-                    neighbour = Lill.getNext(team.squads, neighbour);
                 }
                 if (neighboursCount > 0)
                     this.separation = this.separation.div(neighboursCount).normalize().mul(0.75);
@@ -407,6 +383,9 @@ var Wonder;
         return Hero;
     })(Unit);
     Wonder.Hero = Hero;
+})(Wonder || (Wonder = {}));
+var Wonder;
+(function (Wonder) {
     var UnitAgent = (function () {
         function UnitAgent(unit) {
             this.pos = new Wonder.Vec2(0, 0);
@@ -423,8 +402,18 @@ var Wonder;
             this.y = this.pos.y;
         };
         UnitAgent.prototype.update = function (time) {
-            if (this.unit.squad.hero.isMoving) {
+            if (this.unit.isIdle()) {
+                this.unit.target = this.unit.squad.hero;
                 this.unit.move();
+                return;
+            }
+            if (this.unit.target && this.unit.isMoving) {
+                if (this.unit.squad.hero.isMoving) {
+                    this.unit.move();
+                }
+                else if (this.unit.squad.hero.isAttacking) {
+                    findTargetFromSquad(this.unit, this.unit.squad.hero.target.squad);
+                }
             }
         };
         return UnitAgent;
@@ -440,6 +429,7 @@ var Wonder;
                 var target = findNearestHero(this.unit);
                 this.unit.target = target;
                 this.unit.move();
+                return;
             }
             if (this.unit.target && this.unit.isMoving) {
                 if (outOfRange(this.unit, this.unit.target)) {
@@ -456,12 +446,14 @@ var Wonder;
     function getUnitDistance(a, b) {
         return Wonder.distance(a.agent.x, a.agent.y, b.agent.x, b.agent.y);
     }
+    Wonder.getUnitDistance = getUnitDistance;
     function findNearestHero(hero) {
         var distance = Infinity;
         var nearest = null;
         var enemy = hero.squad.team.enemy;
-        var e_squad = Lill.getHead(enemy.squads);
-        while (e_squad) {
+        var len = enemy.getSquadsNumber();
+        for (var i = 0; i < len; i++) {
+            var e_squad = enemy.squads[i];
             if (!e_squad.hero.isDead) {
                 var d = getUnitDistance(e_squad.hero, hero);
                 if (d < distance) {
@@ -469,7 +461,8 @@ var Wonder;
                     nearest = e_squad.hero;
                 }
             }
-            e_squad = Lill.getNext(enemy.squads, e_squad);
+            else {
+            }
         }
         return nearest;
     }
@@ -478,6 +471,8 @@ var Wonder;
         if (d < attacker.range)
             return false;
         return true;
+    }
+    function findTargetFromSquad(unit, squad) {
     }
 })(Wonder || (Wonder = {}));
 var WonderCraft = (function () {
@@ -495,15 +490,9 @@ var WonderCraft = (function () {
             Wonder.initDebugDraw(game, _this.teamA);
             Wonder.initDebugDraw(game, _this.teamB);
         };
-        this.count = 120;
         this.update = function (game) {
-            if (_this.count === 0) {
-                _this.teamA.update();
-                _this.teamB.update();
-            }
-            else {
-                _this.count--;
-            }
+            _this.teamA.update();
+            _this.teamB.update();
         };
         this.render = function (game) {
             _this.teamA.render();
@@ -520,509 +509,7 @@ window.onload = function () {
     new WonderCraft();
 };
 //# sourceMappingURL=wondercraft-dev.js.map
-},{"lill":2,"randomcolor":19,"vec2":20}],2:[function(require,module,exports){
-/*
-* The MIT License (MIT)
-* Copyright © 2014 Daniel K. (FredyC)
-* 
-* Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-* 
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-* 
-* Version: 0.3.2
-*/
-'use strict';
-var LiLL, Symbol, add, attach, bData, bOwner, checkAttached, checkItem, clear, detach, each, each$noContext, each$withContext, getHead, getNext, getPrevious, getSize, getTail, has, idSequence, isAttached, remove;
-
-Symbol = require('es6-symbol');
-
-bData = Symbol('lill related data');
-
-bOwner = Symbol('lill owner of item');
-
-idSequence = 0;
-
-attach = function(owner) {
-  var data, _ref;
-  if (!(owner && ((_ref = typeof owner) === 'object' || _ref === 'function'))) {
-    throw new TypeError('LiLL.attach needs an object or function');
-  }
-  if (owner[bData]) {
-    throw new TypeError('LiLL.attach cannot use already attached object');
-  }
-  if (!Object.isExtensible(owner)) {
-    throw new TypeError('LiLL.attach needs extensible object');
-  }
-  owner[bData] = data = {
-    owner: Symbol('lill parent owner'),
-    next: Symbol('lill next item'),
-    prev: Symbol('lill previous item'),
-    head: null,
-    tail: null,
-    size: 0,
-    id: idSequence
-  };
-  idSequence += 1;
-  Object.seal(data);
-  return owner;
-};
-
-detach = function(owner) {
-  if (!owner[bData]) {
-    return owner;
-  }
-  clear(owner);
-  delete owner[bData];
-  return owner;
-};
-
-add = function(owner, item) {
-  var data;
-  data = checkAttached(owner);
-  checkItem(owner, item, 'add');
-  if (item[data.owner] === owner) {
-    return owner;
-  }
-  item[data.next] = item[data.prev] = null;
-  item[data.owner] = owner;
-  if (!data.head) {
-    data.head = data.tail = item;
-  } else {
-    data.tail[data.next] = item;
-    item[data.prev] = data.tail;
-    data.tail = item;
-  }
-  data.size += 1;
-  return owner;
-};
-
-has = function(owner, item) {
-  var data;
-  data = checkAttached(owner);
-  checkItem(owner, item, 'has');
-  return item[data.owner] === owner;
-};
-
-remove = function(owner, item) {
-  var data, next, prev;
-  data = checkAttached(owner);
-  checkItem(owner, item, 'remove');
-  if (item[data.owner] !== owner) {
-    return owner;
-  }
-  if (data.head === item) {
-    data.head = data.head[data.next];
-  }
-  if (data.tail === item) {
-    data.tail = data.tail[data.prev];
-  }
-  if (prev = item[data.prev]) {
-    prev[data.next] = item[data.next];
-  }
-  if (next = item[data.next]) {
-    next[data.prev] = item[data.prev];
-  }
-  delete item[data.next];
-  delete item[data.prev];
-  delete item[data.owner];
-  data.size -= 1;
-  return owner;
-};
-
-clear = function(owner) {
-  var data, item;
-  data = checkAttached(owner);
-  while (item = data.head) {
-    data.head = item[data.next];
-    delete item[data.next];
-    delete item[data.prev];
-    delete item[data.owner];
-  }
-  data.head = data.tail = null;
-  data.size = 0;
-  return owner;
-};
-
-getHead = function(owner) {
-  var data;
-  data = checkAttached(owner);
-  return data.head;
-};
-
-getTail = function(owner) {
-  var data;
-  data = checkAttached(owner);
-  return data.tail;
-};
-
-getNext = function(owner, item) {
-  var data;
-  data = checkAttached(owner);
-  return item != null ? item[data.next] : void 0;
-};
-
-getPrevious = function(owner, item) {
-  var data;
-  data = checkAttached(owner);
-  return item != null ? item[data.prev] : void 0;
-};
-
-getSize = function(owner) {
-  var data;
-  data = checkAttached(owner);
-  return data.size;
-};
-
-each = function(owner, cb, ctx) {
-  var data, i, item, iterator, next;
-  data = checkAttached(owner);
-  if (typeof cb !== 'function') {
-    throw new TypeError('LiLL.each method expects callback function');
-  }
-  i = 0;
-  if (!(item = data.head)) {
-    return i;
-  }
-  iterator = ctx !== void 0 ? each$withContext : each$noContext;
-  while (true) {
-    next = item[data.next];
-    iterator(cb, item, i, ctx);
-    if (!(item = next)) {
-      break;
-    }
-    i += 1;
-  }
-  return i;
-};
-
-each$noContext = function(fn, item, i) {
-  return fn(item, i);
-};
-
-each$withContext = function(fn, item, i, ctx) {
-  return fn.call(ctx, item, i);
-};
-
-isAttached = function(owner) {
-  return owner[bData] != null;
-};
-
-checkAttached = function(owner) {
-  var data;
-  if (data = owner != null ? owner[bData] : void 0) {
-    return data;
-  }
-  throw new TypeError('use LiLL.attach() method on owner object');
-};
-
-checkItem = function(owner, item, method) {
-  var _ref;
-  if (!(item && ((_ref = typeof item) === 'object' || _ref === 'function'))) {
-    throw new TypeError("LiLL." + method + " needs an object or function to be added");
-  }
-  if (!Object.isExtensible(item)) {
-    throw new TypeError("LiLL." + method + " method needs an extensible item");
-  }
-  if (item[bOwner] && item[bOwner] !== owner) {
-    throw new TypeError("LiLL cannot " + method + " item that is managed by another list");
-  }
-};
-
-LiLL = {
-  attach: attach,
-  detach: detach,
-  add: add,
-  has: has,
-  remove: remove,
-  clear: clear,
-  getHead: getHead,
-  getTail: getTail,
-  getNext: getNext,
-  getPrevious: getPrevious,
-  getSize: getSize,
-  each: each,
-  isAttached: isAttached
-};
-
-module.exports = Object.freeze(LiLL);
-
-},{"es6-symbol":3}],3:[function(require,module,exports){
-'use strict';
-
-module.exports = require('./is-implemented')() ? Symbol : require('./polyfill');
-
-},{"./is-implemented":4,"./polyfill":18}],4:[function(require,module,exports){
-'use strict';
-
-module.exports = function () {
-	var symbol;
-	if (typeof Symbol !== 'function') return false;
-	symbol = Symbol('test symbol');
-	try { String(symbol); } catch (e) { return false; }
-	if (typeof Symbol.iterator === 'symbol') return true;
-
-	// Return 'true' for polyfills
-	if (typeof Symbol.isConcatSpreadable !== 'object') return false;
-	if (typeof Symbol.isRegExp !== 'object') return false;
-	if (typeof Symbol.iterator !== 'object') return false;
-	if (typeof Symbol.toPrimitive !== 'object') return false;
-	if (typeof Symbol.toStringTag !== 'object') return false;
-	if (typeof Symbol.unscopables !== 'object') return false;
-
-	return true;
-};
-
-},{}],5:[function(require,module,exports){
-'use strict';
-
-var assign        = require('es5-ext/object/assign')
-  , normalizeOpts = require('es5-ext/object/normalize-options')
-  , isCallable    = require('es5-ext/object/is-callable')
-  , contains      = require('es5-ext/string/#/contains')
-
-  , d;
-
-d = module.exports = function (dscr, value/*, options*/) {
-	var c, e, w, options, desc;
-	if ((arguments.length < 2) || (typeof dscr !== 'string')) {
-		options = value;
-		value = dscr;
-		dscr = null;
-	} else {
-		options = arguments[2];
-	}
-	if (dscr == null) {
-		c = w = true;
-		e = false;
-	} else {
-		c = contains.call(dscr, 'c');
-		e = contains.call(dscr, 'e');
-		w = contains.call(dscr, 'w');
-	}
-
-	desc = { value: value, configurable: c, enumerable: e, writable: w };
-	return !options ? desc : assign(normalizeOpts(options), desc);
-};
-
-d.gs = function (dscr, get, set/*, options*/) {
-	var c, e, options, desc;
-	if (typeof dscr !== 'string') {
-		options = set;
-		set = get;
-		get = dscr;
-		dscr = null;
-	} else {
-		options = arguments[3];
-	}
-	if (get == null) {
-		get = undefined;
-	} else if (!isCallable(get)) {
-		options = get;
-		get = set = undefined;
-	} else if (set == null) {
-		set = undefined;
-	} else if (!isCallable(set)) {
-		options = set;
-		set = undefined;
-	}
-	if (dscr == null) {
-		c = true;
-		e = false;
-	} else {
-		c = contains.call(dscr, 'c');
-		e = contains.call(dscr, 'e');
-	}
-
-	desc = { get: get, set: set, configurable: c, enumerable: e };
-	return !options ? desc : assign(normalizeOpts(options), desc);
-};
-
-},{"es5-ext/object/assign":6,"es5-ext/object/is-callable":9,"es5-ext/object/normalize-options":13,"es5-ext/string/#/contains":15}],6:[function(require,module,exports){
-'use strict';
-
-module.exports = require('./is-implemented')()
-	? Object.assign
-	: require('./shim');
-
-},{"./is-implemented":7,"./shim":8}],7:[function(require,module,exports){
-'use strict';
-
-module.exports = function () {
-	var assign = Object.assign, obj;
-	if (typeof assign !== 'function') return false;
-	obj = { foo: 'raz' };
-	assign(obj, { bar: 'dwa' }, { trzy: 'trzy' });
-	return (obj.foo + obj.bar + obj.trzy) === 'razdwatrzy';
-};
-
-},{}],8:[function(require,module,exports){
-'use strict';
-
-var keys  = require('../keys')
-  , value = require('../valid-value')
-
-  , max = Math.max;
-
-module.exports = function (dest, src/*, …srcn*/) {
-	var error, i, l = max(arguments.length, 2), assign;
-	dest = Object(value(dest));
-	assign = function (key) {
-		try { dest[key] = src[key]; } catch (e) {
-			if (!error) error = e;
-		}
-	};
-	for (i = 1; i < l; ++i) {
-		src = arguments[i];
-		keys(src).forEach(assign);
-	}
-	if (error !== undefined) throw error;
-	return dest;
-};
-
-},{"../keys":10,"../valid-value":14}],9:[function(require,module,exports){
-// Deprecated
-
-'use strict';
-
-module.exports = function (obj) { return typeof obj === 'function'; };
-
-},{}],10:[function(require,module,exports){
-'use strict';
-
-module.exports = require('./is-implemented')()
-	? Object.keys
-	: require('./shim');
-
-},{"./is-implemented":11,"./shim":12}],11:[function(require,module,exports){
-'use strict';
-
-module.exports = function () {
-	try {
-		Object.keys('primitive');
-		return true;
-	} catch (e) { return false; }
-};
-
-},{}],12:[function(require,module,exports){
-'use strict';
-
-var keys = Object.keys;
-
-module.exports = function (object) {
-	return keys(object == null ? object : Object(object));
-};
-
-},{}],13:[function(require,module,exports){
-'use strict';
-
-var forEach = Array.prototype.forEach, create = Object.create;
-
-var process = function (src, obj) {
-	var key;
-	for (key in src) obj[key] = src[key];
-};
-
-module.exports = function (options/*, …options*/) {
-	var result = create(null);
-	forEach.call(arguments, function (options) {
-		if (options == null) return;
-		process(Object(options), result);
-	});
-	return result;
-};
-
-},{}],14:[function(require,module,exports){
-'use strict';
-
-module.exports = function (value) {
-	if (value == null) throw new TypeError("Cannot use null or undefined");
-	return value;
-};
-
-},{}],15:[function(require,module,exports){
-'use strict';
-
-module.exports = require('./is-implemented')()
-	? String.prototype.contains
-	: require('./shim');
-
-},{"./is-implemented":16,"./shim":17}],16:[function(require,module,exports){
-'use strict';
-
-var str = 'razdwatrzy';
-
-module.exports = function () {
-	if (typeof str.contains !== 'function') return false;
-	return ((str.contains('dwa') === true) && (str.contains('foo') === false));
-};
-
-},{}],17:[function(require,module,exports){
-'use strict';
-
-var indexOf = String.prototype.indexOf;
-
-module.exports = function (searchString/*, position*/) {
-	return indexOf.call(this, searchString, arguments[1]) > -1;
-};
-
-},{}],18:[function(require,module,exports){
-'use strict';
-
-var d = require('d')
-
-  , create = Object.create, defineProperties = Object.defineProperties
-  , generateName, Symbol;
-
-generateName = (function () {
-	var created = create(null);
-	return function (desc) {
-		var postfix = 0;
-		while (created[desc + (postfix || '')]) ++postfix;
-		desc += (postfix || '');
-		created[desc] = true;
-		return '@@' + desc;
-	};
-}());
-
-module.exports = Symbol = function (description) {
-	var symbol;
-	if (this instanceof Symbol) {
-		throw new TypeError('TypeError: Symbol is not a constructor');
-	}
-	symbol = create(Symbol.prototype);
-	description = (description === undefined ? '' : String(description));
-	return defineProperties(symbol, {
-		__description__: d('', description),
-		__name__: d('', generateName(description))
-	});
-};
-
-Object.defineProperties(Symbol, {
-	create: d('', Symbol('create')),
-	hasInstance: d('', Symbol('hasInstance')),
-	isConcatSpreadable: d('', Symbol('isConcatSpreadable')),
-	isRegExp: d('', Symbol('isRegExp')),
-	iterator: d('', Symbol('iterator')),
-	toPrimitive: d('', Symbol('toPrimitive')),
-	toStringTag: d('', Symbol('toStringTag')),
-	unscopables: d('', Symbol('unscopables'))
-});
-
-defineProperties(Symbol.prototype, {
-	properToString: d(function () {
-		return 'Symbol (' + this.__description__ + ')';
-	}),
-	toString: d('', function () { return this.__name__; })
-});
-Object.defineProperty(Symbol.prototype, Symbol.toPrimitive, d('',
-	function (hint) {
-		throw new TypeError("Conversion of symbol objects is not allowed");
-	}));
-Object.defineProperty(Symbol.prototype, Symbol.toStringTag, d('c', 'Symbol'));
-
-},{"d":5}],19:[function(require,module,exports){
+},{"randomcolor":2}],2:[function(require,module,exports){
 ;(function(root, factory) {
 
   // Support AMD
@@ -1396,480 +883,5 @@ Object.defineProperty(Symbol.prototype, Symbol.toStringTag, d('c', 'Symbol'));
 
   return randomColor;
 }));
-
-},{}],20:[function(require,module,exports){
-;(function inject(clean, precision, undef) {
-
-  var isArray = function (a) {
-    return Object.prototype.toString.call(a) === "[object Array]";
-  };
-
-  var defined = function(a) {
-    return a !== undef;
-  };
-
-  function Vec2(x, y) {
-    if (!(this instanceof Vec2)) {
-      return new Vec2(x, y);
-    }
-
-    if (isArray(x)) {
-      y = x[1];
-      x = x[0];
-    } else if('object' === typeof x && x) {
-      y = x.y;
-      x = x.x;
-    }
-
-    this.x = Vec2.clean(x || 0);
-    this.y = Vec2.clean(y || 0);
-  }
-
-  Vec2.prototype = {
-    change : function(fn) {
-      if (typeof fn === 'function') {
-        if (this.observers) {
-          this.observers.push(fn);
-        } else {
-          this.observers = [fn];
-        }
-      } else if (this.observers && this.observers.length) {
-        for (var i=this.observers.length-1; i>=0; i--) {
-          this.observers[i](this, fn);
-        }
-      }
-
-      return this;
-    },
-
-    ignore : function(fn) {
-      if (this.observers) {
-        if (!fn) {
-          this.observers = [];
-        } else {
-          var o = this.observers, l = o.length;
-          while(l--) {
-            o[l] === fn && o.splice(l, 1);
-          }
-        }
-      }
-      return this;
-    },
-
-    // set x and y
-    set: function(x, y, notify) {
-      if('number' != typeof x) {
-        notify = y;
-        y = x.y;
-        x = x.x;
-      }
-
-      if(this.x === x && this.y === y) {
-        return this;
-      }
-
-      var orig = null;
-      if (notify !== false && this.observers && this.observers.length) {
-        orig = this.clone();
-      }
-
-      this.x = Vec2.clean(x);
-      this.y = Vec2.clean(y);
-
-      if(notify !== false) {
-        return this.change(orig);
-      }
-    },
-
-    // reset x and y to zero
-    zero : function() {
-      return this.set(0, 0);
-    },
-
-    // return a new vector with the same component values
-    // as this one
-    clone : function() {
-      return new (this.constructor)(this.x, this.y);
-    },
-
-    // negate the values of this vector
-    negate : function(returnNew) {
-      if (returnNew) {
-        return new (this.constructor)(-this.x, -this.y);
-      } else {
-        return this.set(-this.x, -this.y);
-      }
-    },
-
-    // Add the incoming `vec2` vector to this vector
-    add : function(x, y, returnNew) {
-
-      if (typeof x != 'number') {
-        returnNew = y;
-        if (isArray(x)) {
-          y = x[1];
-          x = x[0];
-        } else {
-          y = x.y;
-          x = x.x;
-        }
-      }
-
-      x += this.x;
-      y += this.y;
-
-
-      if (!returnNew) {
-        return this.set(x, y);
-      } else {
-        // Return a new vector if `returnNew` is truthy
-        return new (this.constructor)(x, y);
-      }
-    },
-
-    // Subtract the incoming `vec2` from this vector
-    subtract : function(x, y, returnNew) {
-      if (typeof x != 'number') {
-        returnNew = y;
-        if (isArray(x)) {
-          y = x[1];
-          x = x[0];
-        } else {
-          y = x.y;
-          x = x.x;
-        }
-      }
-
-      x = this.x - x;
-      y = this.y - y;
-
-      if (!returnNew) {
-        return this.set(x, y);
-      } else {
-        // Return a new vector if `returnNew` is truthy
-        return new (this.constructor)(x, y);
-      }
-    },
-
-    // Multiply this vector by the incoming `vec2`
-    multiply : function(x, y, returnNew) {
-      if (typeof x != 'number') {
-        returnNew = y;
-        if (isArray(x)) {
-          y = x[1];
-          x = x[0];
-        } else {
-          y = x.y;
-          x = x.x;
-        }
-      } else if (typeof y != 'number') {
-        returnNew = y;
-        y = x;
-      }
-
-      x *= this.x;
-      y *= this.y;
-
-      if (!returnNew) {
-        return this.set(x, y);
-      } else {
-        return new (this.constructor)(x, y);
-      }
-    },
-
-    // Rotate this vector. Accepts a `Rotation` or angle in radians.
-    //
-    // Passing a truthy `inverse` will cause the rotation to
-    // be reversed.
-    //
-    // If `returnNew` is truthy, a new
-    // `Vec2` will be created with the values resulting from
-    // the rotation. Otherwise the rotation will be applied
-    // to this vector directly, and this vector will be returned.
-    rotate : function(r, inverse, returnNew) {
-      var
-      x = this.x,
-      y = this.y,
-      cos = Math.cos(r),
-      sin = Math.sin(r),
-      rx, ry;
-
-      inverse = (inverse) ? -1 : 1;
-
-      rx = cos * x - (inverse * sin) * y;
-      ry = (inverse * sin) * x + cos * y;
-
-      if (returnNew) {
-        return new (this.constructor)(rx, ry);
-      } else {
-        return this.set(rx, ry);
-      }
-    },
-
-    // Calculate the length of this vector
-    length : function() {
-      var x = this.x, y = this.y;
-      return Math.sqrt(x * x + y * y);
-    },
-
-    // Get the length squared. For performance, use this instead of `Vec2#length` (if possible).
-    lengthSquared : function() {
-      var x = this.x, y = this.y;
-      return x*x+y*y;
-    },
-
-    // Return the distance betwen this `Vec2` and the incoming vec2 vector
-    // and return a scalar
-    distance : function(vec2) {
-      var x = this.x - vec2.x;
-      var y = this.y - vec2.y;
-      return Math.sqrt(x*x + y*y);
-    },
-
-    // Given Array of Vec2, find closest to this Vec2.
-    nearest : function(others) {
-      var
-      shortestDistance = Number.MAX_VALUE,
-      nearest = null,
-      currentDistance;
-
-      for (var i = others.length - 1; i >= 0; i--) {
-        currentDistance = this.distance(others[i]);
-        if (currentDistance <= shortestDistance) {
-          shortestDistance = currentDistance;
-          nearest = others[i];
-        }
-      }
-
-      return nearest;
-    },
-
-    // Convert this vector into a unit vector.
-    // Returns the length.
-    normalize : function(returnNew) {
-      var length = this.length();
-
-      // Collect a ratio to shrink the x and y coords
-      var invertedLength = (length < Number.MIN_VALUE) ? 0 : 1/length;
-
-      if (!returnNew) {
-        // Convert the coords to be greater than zero
-        // but smaller than or equal to 1.0
-        return this.set(this.x * invertedLength, this.y * invertedLength);
-      } else {
-        return new (this.constructor)(this.x * invertedLength, this.y * invertedLength);
-      }
-    },
-
-    // Determine if another `Vec2`'s components match this one's
-    // also accepts 2 scalars
-    equal : function(v, w) {
-      if (typeof v != 'number') {
-        if (isArray(v)) {
-          w = v[1];
-          v = v[0];
-        } else {
-          w = v.y;
-          v = v.x;
-        }
-      }
-
-      return (Vec2.clean(v) === this.x && Vec2.clean(w) === this.y);
-    },
-
-    // Return a new `Vec2` that contains the absolute value of
-    // each of this vector's parts
-    abs : function(returnNew) {
-      var x = Math.abs(this.x), y = Math.abs(this.y);
-
-      if (returnNew) {
-        return new (this.constructor)(x, y);
-      } else {
-        return this.set(x, y);
-      }
-    },
-
-    // Return a new `Vec2` consisting of the smallest values
-    // from this vector and the incoming
-    //
-    // When returnNew is truthy, a new `Vec2` will be returned
-    // otherwise the minimum values in either this or `v` will
-    // be applied to this vector.
-    min : function(v, returnNew) {
-      var
-      tx = this.x,
-      ty = this.y,
-      vx = v.x,
-      vy = v.y,
-      x = tx < vx ? tx : vx,
-      y = ty < vy ? ty : vy;
-
-      if (returnNew) {
-        return new (this.constructor)(x, y);
-      } else {
-        return this.set(x, y);
-      }
-    },
-
-    // Return a new `Vec2` consisting of the largest values
-    // from this vector and the incoming
-    //
-    // When returnNew is truthy, a new `Vec2` will be returned
-    // otherwise the minimum values in either this or `v` will
-    // be applied to this vector.
-    max : function(v, returnNew) {
-      var
-      tx = this.x,
-      ty = this.y,
-      vx = v.x,
-      vy = v.y,
-      x = tx > vx ? tx : vx,
-      y = ty > vy ? ty : vy;
-
-      if (returnNew) {
-        return new (this.constructor)(x, y);
-      } else {
-        return this.set(x, y);
-      }
-    },
-
-    // Clamp values into a range.
-    // If this vector's values are lower than the `low`'s
-    // values, then raise them.  If they are higher than
-    // `high`'s then lower them.
-    //
-    // Passing returnNew as true will cause a new Vec2 to be
-    // returned.  Otherwise, this vector's values will be clamped
-    clamp : function(low, high, returnNew) {
-      var ret = this.min(high, true).max(low);
-      if (returnNew) {
-        return ret;
-      } else {
-        return this.set(ret.x, ret.y);
-      }
-    },
-
-    // Perform linear interpolation between two vectors
-    // amount is a decimal between 0 and 1
-    lerp : function(vec, amount, returnNew) {
-      return this.add(vec.subtract(this, true).multiply(amount), returnNew);
-    },
-
-    // Get the skew vector such that dot(skew_vec, other) == cross(vec, other)
-    skew : function(returnNew) {
-      if (!returnNew) {
-        return this.set(-this.y, this.x)
-      } else {
-        return new (this.constructor)(-this.y, this.x);
-      }
-    },
-
-    // calculate the dot product between
-    // this vector and the incoming
-    dot : function(b) {
-      return Vec2.clean(this.x * b.x + b.y * this.y);
-    },
-
-    // calculate the perpendicular dot product between
-    // this vector and the incoming
-    perpDot : function(b) {
-      return Vec2.clean(this.x * b.y - this.y * b.x);
-    },
-
-    // Determine the angle between two vec2s
-    angleTo : function(vec) {
-      return Math.atan2(this.perpDot(vec), this.dot(vec));
-    },
-
-    // Divide this vector's components by a scalar
-    divide : function(x, y, returnNew) {
-      if (typeof x != 'number') {
-        returnNew = y;
-        if (isArray(x)) {
-          y = x[1];
-          x = x[0];
-        } else {
-          y = x.y;
-          x = x.x;
-        }
-      } else if (typeof y != 'number') {
-        returnNew = y;
-        y = x;
-      }
-
-      if (x === 0 || y === 0) {
-        throw new Error('division by zero')
-      }
-
-      if (isNaN(x) || isNaN(y)) {
-        throw new Error('NaN detected');
-      }
-
-      if (returnNew) {
-        return new (this.constructor)(this.x / x, this.y / y);
-      }
-
-      return this.set(this.x / x, this.y / y);
-    },
-
-    isPointOnLine : function(start, end) {
-      return (start.y - this.y) * (start.x - end.x) ===
-             (start.y - end.y) * (start.x - this.x);
-    },
-
-    toArray: function() {
-      return [this.x, this.y];
-    },
-
-    fromArray: function(array) {
-      return this.set(array[0], array[1]);
-    },
-    toJSON: function () {
-      return {x: this.x, y: this.y};
-    },
-    toString: function() {
-      return '(' + this.x + ', ' + this.y + ')';
-    },
-    constructor : Vec2
-  };
-
-  Vec2.fromArray = function(array, ctor) {
-    return new (ctor || Vec2)(array[0], array[1]);
-  };
-
-  // Floating point stability
-  Vec2.precision = precision || 8;
-  var p = Math.pow(10, Vec2.precision);
-
-  Vec2.clean = clean || function(val) {
-    if (isNaN(val)) {
-      throw new Error('NaN detected');
-    }
-
-    if (!isFinite(val)) {
-      throw new Error('Infinity detected');
-    }
-
-    if(Math.round(val) === val) {
-      return val;
-    }
-
-    return Math.round(val * p)/p;
-  };
-
-  Vec2.inject = inject;
-
-  if(!clean) {
-    Vec2.fast = inject(function (k) { return k; });
-
-    // Expose, but also allow creating a fresh Vec2 subclass.
-    if (typeof module !== 'undefined' && typeof module.exports == 'object') {
-      module.exports = Vec2;
-    } else {
-      window.Vec2 = window.Vec2 || Vec2;
-    }
-  }
-  return Vec2;
-})();
 
 },{}]},{},[1]);

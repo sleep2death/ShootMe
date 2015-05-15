@@ -34,20 +34,16 @@ class WonderCraft {
     }
 
     //wait 2 seconds to start
-    count: number = 120;
-
     update = (game: Phaser.Game) => {
-        if (this.count === 0) {
-            this.teamA.update();
-            this.teamB.update();
-        } else {
-            this.count--
-        }
+        this.teamA.update();
+        this.teamB.update();
     }
 
     render = (game: Phaser.Game) => {
         this.teamA.render();
         this.teamB.render();
+        //if (this.frames % 60 == 0) game.world.sort("y", Phaser.Group.SORT_ASCENDING);
+        ///this.frames++;
         game.debug.text(game.time.fps.toString(), 2, 14, "#00FF00");
     }
 }

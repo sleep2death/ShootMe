@@ -1,8 +1,6 @@
 module Wonder {
     //TODO: add destroy method to all units
-    var Lill = require("lill");
     var RandomColor = require("randomcolor");
-    var vec2 = require("vec2");
     /*
     Team -> Squads -> Units/Hero -> Agent/DisplayContainer
     */
@@ -38,7 +36,7 @@ module Wonder {
         //which side:left or right
         side: number;
         //squads
-        squads = {};
+        squads: Array<Squad> = [];
 
         debug_hue: string;
 
@@ -48,20 +46,18 @@ module Wonder {
 
         constructor(id: number) {
             this.id = id;
-            Lill.attach(this.squads);
         }
 
         update() {
-            var squad = <Squad>Lill.getHead(this.squads);
-            //find squad by id
-            while (squad) {
+            var len: number = this.getSquadsNumber();
+            for (var i: number = 0; i < len; i++) {
+                var squad = this.squads[i];
                 squad.hero.update(FRAMERATE);
-                var unit = <Unit>Lill.getHead(squad.units);
-                while (unit) {
+                var l = squad.units.length;
+                for(var j:number = 0; j < l;j++){
+                    var unit = squad.units[j];
                     unit.update(FRAMERATE);
-                    unit = <Unit>Lill.getNext(squad.units, unit);
                 }
-                squad = <Squad>Lill.getNext(this.squads, squad);
             }
 
             this.frameCount++;
@@ -69,40 +65,28 @@ module Wonder {
         }
 
         render() {
-            var squad = <Squad>Lill.getHead(this.squads);
             //find squad by id
-            while (squad) {
+            var len: number = this.getSquadsNumber();
+            for (var i: number = 0; i < len; i++) {
+                var squad = this.squads[i];
                 squad.hero.render(FRAMERATE);
-                var unit = <Unit>Lill.getHead(squad.units);
-                while (unit) {
+                var l = squad.units.length;
+                for(var j:number = 0; j < l;j++){
+                    var unit = squad.units[j];
                     unit.render(FRAMERATE);
-                    unit = <Unit>Lill.getNext(squad.units, unit);
                 }
-                squad = <Squad>Lill.getNext(this.squads, squad);
             }
         }
 
         //get the size of the squads list
         getSquadsNumber(): number {
-            return Lill.getSize(this.squads);
+            return this.squads.length;
         }
 
         //add squad to the linked list
         addSquad(squad: Squad) {
             squad.team = this;
-            Lill.add(this.squads, squad);
-        }
-
-        getSquad(squad_id: number): Squad {
-            var squad = <Squad>Lill.getHead(this.squads);
-            //find squad by id
-            while (squad) {
-                if (squad.id == squad_id) {
-                    return squad;
-                }
-                squad = Lill.getNext(this.squads, squad);
-            }
-            return null;
+            this.squads.push(squad);
         }
     }
 
@@ -117,15 +101,13 @@ module Wonder {
         //squad target
         target: Squad;
         //units
-        units = {}
+        units: Array<Unit> = [];
 
         debug_color: number;
 
         constructor(id: number, debug_color: number) {
             this.id = id;
             this.debug_color = debug_color;
-
-            Lill.attach(this.units);
         }
 
         setHero(hero: Hero) {
@@ -134,25 +116,13 @@ module Wonder {
         }
 
         getUnitsNumber(): number {
-            return Lill.getSize(this.units);
+            return this.units.length;
         }
 
         addUnit(unit: Unit) {
             unit.squad = this;
             unit.team = this.team;//just add a shortcut;
-            Lill.add(this.units, unit);
-        }
-
-        getUnit(unit_id: number): Unit {
-            var unit = <Unit>Lill.getHead(this.units);
-            while (unit) {
-                if (unit.id == unit_id) {
-                    return unit;
-                }
-                unit = <Unit>Lill.getNext(this.units, unit);
-            }
-
-            return null;
+            this.units.push(unit);
         }
     }
 
@@ -189,14 +159,15 @@ module Wonder {
 
     export function initDebugDraw(game: Phaser.Game, team: Team) {
         var side: number = team.side;
-        var squad: Squad = Lill.getHead(team.squads);
+        var len: number = team.getSquadsNumber();
         var squad_w = 1334 / 16;
         var squad_h = (750 - 200) / 5;
         var unit_radius = 12;
         var hero_radius = 16;
         var padding = 4;
         //get all squads and units to draw
-        while (squad) {
+        for (var i:number = 0; i < len;i++) {
+            var squad : Squad = team.squads[i];
             var s_col = side == 0 ? squad.position % 4 : 3 - (squad.position % 4);
             var s_row = Math.floor(squad.position / 4);
             var s_x = side == 0 ? s_col * squad_w + squad_w : 1334 - (s_col * squad_w + squad_w);
@@ -207,13 +178,14 @@ module Wonder {
             squad.hero.agent.x = squad.hero.displayer.x = s_x;
             squad.hero.agent.y = squad.hero.displayer.y = s_y;
 
-            var unit: Unit = Lill.getHead(squad.units);
+            var l: number = squad.getUnitsNumber();
             var pos: number = 0;
 
             var start_x: number = side == 0 ? s_x - hero_radius - padding : s_x + hero_radius + padding;
             var start_y: number = s_y - 2 * (unit_radius + padding);
 
-            while (unit) {
+            for (var j : number = 0; j < l; j++) {
+                var unit : Unit = squad.units[j];
                 var u_x = side == 0 ? start_x - Math.floor(pos / 5) * (unit_radius + padding) : start_x + Math.floor(pos / 5) * (unit_radius + padding)
                 var u_y = start_y + pos % 5 * (unit_radius + padding);
 
@@ -221,11 +193,8 @@ module Wonder {
 
                 unit.agent.x = unit.displayer.x = u_x;
                 unit.agent.y = unit.displayer.y = u_y;
-                unit = Lill.getNext(squad.units, unit);
                 pos++;
             }
-
-            squad = Lill.getNext(team.squads, squad);
         }
     }
 
@@ -242,7 +211,6 @@ module Wonder {
             g.lineTo(-radius * 0.5, 0);
         }
         g.cacheAsBitmap = true;
-
         displayer.addChild(g);
         unit.displayer = displayer;
     }
