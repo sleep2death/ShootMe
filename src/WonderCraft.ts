@@ -33,15 +33,16 @@ class WonderCraft {
         Wonder.initDebugDraw(game, this.teamB);
     }
 
-    count: number = 0;
+    //wait 2 seconds to start
+    count: number = 120;
 
     update = (game: Phaser.Game) => {
-        if (this.count > 300) {
+        if (this.count === 0) {
             this.teamA.update();
             this.teamB.update();
+        } else {
+            this.count--
         }
-
-        this.count++;
     }
 
     render = (game: Phaser.Game) => {

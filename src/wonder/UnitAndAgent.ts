@@ -108,6 +108,45 @@ module Wonder {
         move() {
             this.isMoving = true;
             this.isAttacking = false;
+            this.follow();
+            this.agent.x += this.agent.velocity.x;
+            this.agent.y += this.agent.velocity.y;
+        }
+
+        randomFollow: Vec2 = new Vec2(0, 0);
+
+        follow() {
+            var hero: Hero = this.squad.hero;
+            var hero_v = this.squad.hero.agent.velocity;
+
+            //give agent a random speed fix per 10 frame, to make them acting more living
+            if (this.squad.team.frameCount % 10 === 0) {
+                var seed: Wonder.Random = this.squad.team.seed;
+                this.randomFollow.x = seed.nextRange(-0.15, 0.15, false);
+                this.randomFollow.y = seed.nextRange(-0.15, 0.15, false);
+            }
+            this.agent.velocity = hero_v.add(this.randomFollow);
+        }
+
+        attack() {
+            this.isAttacking = true;
+            this.isMoving = false;
+        }
+    }
+
+    export class Hero extends Unit implements IUnit {
+        constructor(id: number) {
+            super(id);
+        }
+
+        init() {
+            this.isHero = true;
+            this.agent = new HeroAgent(this);
+        }
+
+        move() {
+            this.isMoving = true;
+            this.isAttacking = false;
 
             var dx: number = this.target.agent.x - this.agent.x;
             var dy: number = this.target.agent.y - this.agent.y;
@@ -115,8 +154,8 @@ module Wonder {
             var vec2: Vec2 = normalize(dx, dy);
             this.agent.velocity = vec2.mul(2);
 
-            //give nearby agents a random speed fix per 2 seconds, to separate them
-            if (this.squad.team.frameCount % 120 === 0) {
+            //give nearby agents a random speed fix per 12 frames, to separate them
+            if (this.squad.team.frameCount % 12 === 0) {
                 var team = this.squad.team;
                 var neighbour = <Squad>Lill.getHead(team.squads);
                 var neighboursCount: number = 0;
@@ -127,8 +166,9 @@ module Wonder {
                         if (d <= 120) {
                             dx = this.agent.x - neighbour.hero.agent.x;
                             dy = this.agent.y - neighbour.hero.agent.y;
-                            this.separation.x += dx;
-                            this.separation.y += dy;
+                            //more closed more push back force
+                            this.separation.x += dx!=0?1/dx:0;
+                            this.separation.y += dy!=0?1/dy:0;
                             neighboursCount++;
                         }
                     }
@@ -146,42 +186,6 @@ module Wonder {
 
             this.agent.x += this.agent.velocity.x;
             this.agent.y += this.agent.velocity.y;
-        }
-
-        randomFollow: Vec2 = new Vec2(0, 0);
-
-        follow() {
-            this.isMoving = true;
-            this.isAttacking = false;
-
-            var hero: Hero = this.squad.hero;
-            var hero_v = this.squad.hero.agent.velocity;
-
-            //give agent a random speed fix per 10 frame, to make them acting more living
-            if (this.squad.team.frameCount % 10 === 0) {
-                var seed: Wonder.Random = this.squad.team.seed;
-                this.randomFollow.x = seed.nextRange(-0.15, 0.15, false);
-                this.randomFollow.y = seed.nextRange(-0.15, 0.15, false);
-            }
-            this.agent.velocity = hero_v.add(this.randomFollow);
-            this.agent.x += this.agent.velocity.x;
-            this.agent.y += this.agent.velocity.y;
-        }
-
-        attack() {
-            this.isAttacking = true;
-            this.isMoving = false;
-        }
-    }
-
-    export class Hero extends Unit implements IUnit {
-        constructor(id: number) {
-            super(id);
-        }
-
-        init() {
-            this.isHero = true;
-            this.agent = new HeroAgent(this);
         }
     }
 
@@ -215,7 +219,7 @@ module Wonder {
         update(time: number) {
             //if hero is moving, then follow him
             if (this.unit.squad.hero.isMoving) {
-                this.unit.follow();
+                this.unit.move();
             }
         }
     }
@@ -239,7 +243,6 @@ module Wonder {
                 if (outOfRange(this.unit, this.unit.target)) {
                     this.unit.move();
                 } else {
-                    //if (this.unit.isMoving) console.log("move to attack");
                     this.unit.attack();
                 }
             }

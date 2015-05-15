@@ -341,39 +341,11 @@ var Wonder;
         Unit.prototype.move = function () {
             this.isMoving = true;
             this.isAttacking = false;
-            var dx = this.target.agent.x - this.agent.x;
-            var dy = this.target.agent.y - this.agent.y;
-            var vec2 = Wonder.normalize(dx, dy);
-            this.agent.velocity = vec2.mul(2);
-            if (this.squad.team.frameCount % 120 === 0) {
-                var team = this.squad.team;
-                var neighbour = Lill.getHead(team.squads);
-                var neighboursCount = 0;
-                while (neighbour) {
-                    if (!neighbour.hero.isDead && !neighbour.hero.isMoving) {
-                        var d = getUnitDistance(neighbour.hero, this);
-                        if (d <= 120) {
-                            dx = this.agent.x - neighbour.hero.agent.x;
-                            dy = this.agent.y - neighbour.hero.agent.y;
-                            this.separation.x += dx;
-                            this.separation.y += dy;
-                            neighboursCount++;
-                        }
-                    }
-                    neighbour = Lill.getNext(team.squads, neighbour);
-                }
-                if (neighboursCount > 0)
-                    this.separation = this.separation.div(neighboursCount).normalize().mul(0.75);
-                else
-                    this.separation = new Wonder.Vec2(0, 0);
-            }
-            this.agent.velocity = this.agent.velocity.add(this.separation);
+            this.follow();
             this.agent.x += this.agent.velocity.x;
             this.agent.y += this.agent.velocity.y;
         };
         Unit.prototype.follow = function () {
-            this.isMoving = true;
-            this.isAttacking = false;
             var hero = this.squad.hero;
             var hero_v = this.squad.hero.agent.velocity;
             if (this.squad.team.frameCount % 10 === 0) {
@@ -382,8 +354,6 @@ var Wonder;
                 this.randomFollow.y = seed.nextRange(-0.15, 0.15, false);
             }
             this.agent.velocity = hero_v.add(this.randomFollow);
-            this.agent.x += this.agent.velocity.x;
-            this.agent.y += this.agent.velocity.y;
         };
         Unit.prototype.attack = function () {
             this.isAttacking = true;
@@ -400,6 +370,39 @@ var Wonder;
         Hero.prototype.init = function () {
             this.isHero = true;
             this.agent = new HeroAgent(this);
+        };
+        Hero.prototype.move = function () {
+            this.isMoving = true;
+            this.isAttacking = false;
+            var dx = this.target.agent.x - this.agent.x;
+            var dy = this.target.agent.y - this.agent.y;
+            var vec2 = Wonder.normalize(dx, dy);
+            this.agent.velocity = vec2.mul(2);
+            if (this.squad.team.frameCount % 12 === 0) {
+                var team = this.squad.team;
+                var neighbour = Lill.getHead(team.squads);
+                var neighboursCount = 0;
+                while (neighbour) {
+                    if (!neighbour.hero.isDead && !neighbour.hero.isMoving) {
+                        var d = getUnitDistance(neighbour.hero, this);
+                        if (d <= 120) {
+                            dx = this.agent.x - neighbour.hero.agent.x;
+                            dy = this.agent.y - neighbour.hero.agent.y;
+                            this.separation.x += dx != 0 ? 1 / dx : 0;
+                            this.separation.y += dy != 0 ? 1 / dy : 0;
+                            neighboursCount++;
+                        }
+                    }
+                    neighbour = Lill.getNext(team.squads, neighbour);
+                }
+                if (neighboursCount > 0)
+                    this.separation = this.separation.div(neighboursCount).normalize().mul(0.75);
+                else
+                    this.separation = new Wonder.Vec2(0, 0);
+            }
+            this.agent.velocity = this.agent.velocity.add(this.separation);
+            this.agent.x += this.agent.velocity.x;
+            this.agent.y += this.agent.velocity.y;
         };
         return Hero;
     })(Unit);
@@ -421,7 +424,7 @@ var Wonder;
         };
         UnitAgent.prototype.update = function (time) {
             if (this.unit.squad.hero.isMoving) {
-                this.unit.follow();
+                this.unit.move();
             }
         };
         return UnitAgent;
@@ -492,13 +495,15 @@ var WonderCraft = (function () {
             Wonder.initDebugDraw(game, _this.teamA);
             Wonder.initDebugDraw(game, _this.teamB);
         };
-        this.count = 0;
+        this.count = 120;
         this.update = function (game) {
-            if (_this.count > 300) {
+            if (_this.count === 0) {
                 _this.teamA.update();
                 _this.teamB.update();
             }
-            _this.count++;
+            else {
+                _this.count--;
+            }
         };
         this.render = function (game) {
             _this.teamA.render();
