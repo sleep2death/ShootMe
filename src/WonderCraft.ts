@@ -50,6 +50,7 @@ class WonderCraft {
         game.debug.text(game.time.fps.toString(), 2, 14, "#00FF00");
     }
 }
+
 window.onload = function() {
     new WonderCraft();
 };

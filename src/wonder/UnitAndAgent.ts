@@ -115,8 +115,8 @@ module Wonder {
             var vec2: Vec2 = normalize(dx, dy);
             this.agent.velocity = vec2.mul(2);
 
-            //give nearby agents a random speed fix per 30 frame, to separate them
-            if (this.squad.team.frameCount % 35 === 0) {
+            //give nearby agents a random speed fix per 2 seconds, to separate them
+            if (this.squad.team.frameCount % 120 === 0) {
                 var team = this.squad.team;
                 var neighbour = <Squad>Lill.getHead(team.squads);
                 var neighboursCount: number = 0;

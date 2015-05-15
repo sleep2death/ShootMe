@@ -345,7 +345,7 @@ var Wonder;
             var dy = this.target.agent.y - this.agent.y;
             var vec2 = Wonder.normalize(dx, dy);
             this.agent.velocity = vec2.mul(2);
-            if (this.squad.team.frameCount % 35 === 0) {
+            if (this.squad.team.frameCount % 120 === 0) {
                 var team = this.squad.team;
                 var neighbour = Lill.getHead(team.squads);
                 var neighboursCount = 0;

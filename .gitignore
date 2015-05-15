@@ -2,3 +2,4 @@
 src/**/*.js
 tags
 .tscache
+node_modules
