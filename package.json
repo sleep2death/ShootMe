@@ -27,5 +27,8 @@
     "phaser": "^2.3.0",
     "randomcolor": "^0.2.0",
     "vec2": "^1.6.0"
+  },
+  "devDependencies": {
+    "grunt-contrib-copy": "^0.8.0"
   }
 }
