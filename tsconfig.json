@@ -1,0 +1,26 @@
+{
+    "version": "1.5.0-alpha",
+    "compilerOptions": {
+        "target": "es5",
+        "module": "commonjs",
+        "declaration": false,
+        "noImplicitAny": false,
+        "removeComments": true,
+        "noLib": false
+    },
+    "filesGlob": [
+        "./src/**/*.ts",
+        "./typings/phaser/phaser.d.ts",
+        "./typings/browserify/browserify.d.ts"
+    ],
+    "files": [
+        "./src/WonderCraft.ts",
+        "./src/_references.ts",
+        "./src/utils/Math.ts",
+        "./src/wonder/Agent.ts",
+        "./src/wonder/TeamAndSquad.ts",
+        "./src/wonder/Unit.ts",
+        "./typings/phaser/phaser.d.ts",
+        "./typings/browserify/browserify.d.ts"
+    ]
+}

@@ -1,0 +1,5 @@
+.DS_Store
+src/**/*.js
+tags
+.tscache
+node_modules
