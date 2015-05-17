@@ -21,6 +21,8 @@ class WonderCraft {
 
     create = (game: Phaser.Game) => {
         game.time.advancedTiming = true;
+        game.scale.pageAlignHorizontally = true;
+    	game.scale.pageAlignVertically = true;
 
         var seed = new Wonder.Random("TheSecretLifeOfWalterMitty");
 
