@@ -38,19 +38,26 @@ module Wonder {
         }
 
         update(time: number) {
-            //if hero is moving, then follow him
-            if (this.unit.isIdle()) {
-                this.unit.target = this.unit.squad.hero;
-                this.unit.move();
-                return;
-            }
-
-            if (this.unit.target && this.unit.isMoving) {
-                if (this.unit.squad.hero.isMoving){//follow the hero if he is moving
-                    this.unit.move();
-                }else if(this.unit.squad.hero.isAttacking){//attack a random target if hero is attacking
-                    findTargetFromSquad(this.unit, this.unit.squad.hero.target.squad);
-                }
+            switch (this.unit.state) {
+                case UNIT_STATES.IDLE:
+                    this.unit.target = findNextTarget(this.unit);
+                    if (this.unit.target) this.unit.state = UNIT_STATES.MOVING;//if the unit has a target, moves to it
+                    //if the target is null, then wait...(all dead units are removed from the units array in next frame)
+                    break;
+                case UNIT_STATES.MOVING:
+                    if (this.unit.target && this.unit.target.state != UNIT_STATES.DEAD) {
+                        if(outOfRange(this.unit, this.unit.target)){
+                            this.velocity = normalize((this.unit.target.agent.x - this.x),(this.unit.target.agent.y - this.y)).mul(2);
+                            this.unit.move();
+                        }
+                    } else {
+                        this.unit.state = UNIT_STATES.IDLE;//set to idle and wait for next frame, if target is null or dead
+                    }
+                    break;
+                case UNIT_STATES.ATTACKING:
+                    break;
+                case UNIT_STATES.DEAD:
+                    break;
             }
         }
     }
@@ -58,26 +65,6 @@ module Wonder {
     export class HeroAgent extends UnitAgent implements IAgent {
         constructor(unit: IUnit) {
             super(unit)
-    }
-
-        update(time: number) {
-            //if hero is idle, then find the nearest target for him
-            if (this.unit.isIdle()) {
-                var target: Hero = findNearestHero(<Hero>this.unit);
-                //a hero fights a hero!
-                this.unit.target = target;
-                this.unit.move();
-                return;
-            }
-
-            if (this.unit.target && this.unit.isMoving) {
-                //if out of the attack range, move to the target, else attack it
-                if (outOfRange(this.unit, this.unit.target)) {
-                    this.unit.move();
-                } else {
-                    this.unit.attack();
-                }
-            }
         }
     }
 
@@ -86,6 +73,48 @@ module Wonder {
 
     export function getUnitDistance(a: IUnit, b: IUnit): number {
         return distance(a.agent.x, a.agent.y, b.agent.x, b.agent.y);
+    }
+
+    //return the nearest and living target...
+    function findNextTarget(unit: IUnit): IUnit {
+        //some shortcuts
+        var enemy: Team = unit.squad.team.enemy;
+        var len = enemy.getSquadsNumber();
+        var squad: Squad;
+        var target: IUnit;
+        var distance: number = Infinity;
+        //if unit had a target before...
+        if (unit.target) {
+            //TODO: find next target in the same squad
+        } else {
+            //if unit's hero has target, then find the target in the same squad
+            if (!unit.isHero && unit.squad.hero.target) {
+                var targetSquad: Squad = unit.squad.hero.target.squad;
+                target = targetSquad.units[unit.position];
+                if (!target) target = targetSquad.units[0];
+            } else {
+                //1. searching every squad
+                //2. try to find an opponent unit in same unit position of the squad
+                //3. if opponent is not exsit, get the first one in the living units(maybe it's dead and wait for clean)
+                //4. compare distance between unit and opponents, and return the nearest one
+                for (var i: number = 0; i < len; i++) {
+                    squad = enemy.squads[i];
+                    var opponent: IUnit = squad.units[unit.position];
+                    if (!opponent) opponent = squad.units[0];
+
+                    if (opponent) {
+                        var d: number = getUnitDistance(unit, opponent);
+                        if (d < distance) {
+                            distance = d;
+                            target = opponent;
+                        }
+                    }
+                }
+            }
+
+            //if the target is null, then the unit will set to idle state and wait for next frame...
+            return target;
+        }
     }
 
     //find the nearest squad based on the position of the squad's hero
@@ -97,19 +126,19 @@ module Wonder {
         var enemy: Team = hero.squad.team.enemy;
         var len = enemy.getSquadsNumber();
 
-        for (var i:number = 0; i < len;i++) {
-            var e_squad = enemy.squads[i];
-            //check the distance if the target hero is alive
-            if (!e_squad.hero.isDead) {
-                var d = getUnitDistance(e_squad.hero, hero);
-                if (d < distance) {
-                    distance = d;
-                    nearest = e_squad.hero;
-                }
-            } else {
-                //TODO: find a living unit
-            }
-        }
+        // for (var i:number = 0; i < len;i++) {
+        //     var e_squad = enemy.squads[i];
+        //     //check the distance if the target hero is alive
+        //     if (!e_squad.hero.isDead) {
+        //         var d = getUnitDistance(e_squad.hero, hero);
+        //         if (d < distance) {
+        //             distance = d;
+        //             nearest = e_squad.hero;
+        //         }
+        //     } else {
+        //         //TODO: find a living unit
+        //     }
+        // }
         return nearest;
     }
 
@@ -119,7 +148,7 @@ module Wonder {
         return true;
     }
 
-    function findTargetFromSquad(unit:IUnit, squad:Squad){
+    function findTargetFromSquad(unit: IUnit, squad: Squad) {
 
     }
 }

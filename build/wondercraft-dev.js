@@ -136,10 +136,10 @@ var Wonder;
     var ATTACK_RANGE;
     (function (ATTACK_RANGE) {
         ATTACK_RANGE[ATTACK_RANGE["MELEE"] = 20] = "MELEE";
-        ATTACK_RANGE[ATTACK_RANGE["MEDIUM"] = 120] = "MEDIUM";
-        ATTACK_RANGE[ATTACK_RANGE["LONG"] = 250] = "LONG";
+        ATTACK_RANGE[ATTACK_RANGE["MEDIUM"] = 150] = "MEDIUM";
+        ATTACK_RANGE[ATTACK_RANGE["LONG"] = 300] = "LONG";
     })(ATTACK_RANGE || (ATTACK_RANGE = {}));
-    var RANGES = [20 /* MELEE */, 120 /* MEDIUM */, 250 /* LONG */];
+    var RANGES = [20 /* MELEE */, 150 /* MEDIUM */, 300 /* LONG */];
     var Team = (function () {
         function Team(id) {
             this.squads = [];
@@ -150,10 +150,11 @@ var Wonder;
             var len = this.getSquadsNumber();
             for (var i = 0; i < len; i++) {
                 var squad = this.squads[i];
-                squad.hero.update(Wonder.FRAMERATE);
                 var l = squad.units.length;
                 for (var j = 0; j < l; j++) {
                     var unit = squad.units[j];
+                    if (unit.state === -1 /* DEAD */)
+                        squad.killUnit(unit);
                     unit.update(Wonder.FRAMERATE);
                 }
             }
@@ -165,7 +166,6 @@ var Wonder;
             var len = this.getSquadsNumber();
             for (var i = 0; i < len; i++) {
                 var squad = this.squads[i];
-                squad.hero.render(Wonder.FRAMERATE);
                 var l = squad.units.length;
                 for (var j = 0; j < l; j++) {
                     var unit = squad.units[j];
@@ -186,12 +186,16 @@ var Wonder;
     var Squad = (function () {
         function Squad(id, debug_color) {
             this.units = [];
+            this.bodies = [];
             this.id = id;
             this.debug_color = debug_color;
         }
-        Squad.prototype.setHero = function (hero) {
-            this.hero = hero;
-            hero.squad = this;
+        Squad.prototype.killUnit = function (unit) {
+            var index;
+            if ((index = this.units.indexOf(unit)) > -1 && this.bodies.indexOf(unit) < 0) {
+                this.units.splice(index, 1);
+                this.bodies.push(unit);
+            }
         };
         Squad.prototype.getUnitsNumber = function () {
             return this.units.length;
@@ -199,6 +203,7 @@ var Wonder;
         Squad.prototype.addUnit = function (unit) {
             unit.squad = this;
             unit.team = this.team;
+            unit.position = this.units.length;
             this.units.push(unit);
         };
         return Squad;
@@ -215,11 +220,13 @@ var Wonder;
             var squad = new Squad(rnd.nextUInt(), 0);
             squad.position = SQUAD_POSITIONS[i];
             var hero = new Wonder.Hero(rnd.nextUInt());
-            squad.setHero(hero);
             hero.range = RANGES[rnd.nextRange(0, RANGES.length - 1)];
+            squad.addUnit(hero);
+            squad.hero = hero;
             var unit_number_range = rnd.nextRange(10, 15);
             for (var j = 0; j < unit_number_range; j++) {
                 var unit = new Wonder.Unit(j);
+                unit.range = hero.range;
                 squad.addUnit(unit);
             }
             var rc = RandomColor({ hue: team.debug_hue }).slice(1);
@@ -233,51 +240,46 @@ var Wonder;
     function initDebugDraw(game, team) {
         var side = team.side;
         var len = team.getSquadsNumber();
-        var squad_w = 1334 / 16;
-        var squad_h = (750 - 200) / 5;
+        var squad_w = 1334 / 14;
+        var squad_h = (750 - 100) / 5;
         var unit_radius = 12;
         var hero_radius = 16;
-        var padding = 4;
+        var padding = 10;
         for (var i = 0; i < len; i++) {
             var squad = team.squads[i];
             var s_col = side == 0 ? squad.position % 4 : 3 - (squad.position % 4);
             var s_row = Math.floor(squad.position / 4);
             var s_x = side == 0 ? s_col * squad_w + squad_w : 1334 - (s_col * squad_w + squad_w);
-            var s_y = s_row * squad_h + squad_h * 0.5 + 100;
-            addDebugShape(game, squad.hero, hero_radius, squad.debug_color, side);
-            squad.hero.agent.x = squad.hero.displayer.x = s_x;
-            squad.hero.agent.y = squad.hero.displayer.y = s_y;
+            var s_y = s_row * squad_h + squad_h * 0.5 + 50;
             var l = squad.getUnitsNumber();
             var pos = 0;
             var start_x = side == 0 ? s_x - hero_radius - padding : s_x + hero_radius + padding;
             var start_y = s_y - 2 * (unit_radius + padding);
             for (var j = 0; j < l; j++) {
                 var unit = squad.units[j];
-                var u_x = side == 0 ? start_x - Math.floor(pos / 5) * (unit_radius + padding) : start_x + Math.floor(pos / 5) * (unit_radius + padding);
-                var u_y = start_y + pos % 5 * (unit_radius + padding);
+                var u_x;
+                var u_y;
+                if (j > 0) {
+                    u_x = side == 0 ? start_x - Math.floor(pos / 5) * (unit_radius + padding) : start_x + Math.floor(pos / 5) * (unit_radius + padding);
+                    u_y = start_y + pos % 5 * (unit_radius + padding);
+                    pos++;
+                }
+                else {
+                    u_x = s_x;
+                    u_y = s_y;
+                }
                 addDebugShape(game, unit, unit_radius, squad.debug_color, side);
-                unit.agent.x = unit.displayer.x = u_x;
-                unit.agent.y = unit.displayer.y = u_y;
-                pos++;
+                unit.agent.x = u_x;
+                unit.agent.y = u_y;
             }
         }
     }
     Wonder.initDebugDraw = initDebugDraw;
     function addDebugShape(game, unit, radius, color, side) {
-        var displayer = game.add.sprite(0, 0);
-        var g = game.make.graphics(0, 0);
-        g.lineStyle(2, color);
-        g.drawCircle(0, 0, radius);
-        g.moveTo(0, 0);
-        if (side == 0) {
-            g.lineTo(radius * 0.5, 0);
-        }
-        else {
-            g.lineTo(-radius * 0.5, 0);
-        }
-        g.cacheAsBitmap = true;
-        displayer.addChild(g);
-        unit.displayer = displayer;
+        var displayer = game.add.sprite(0, 0, "heroes", side == 0 ? Math.floor(Math.random() * 42) : Math.floor(Math.random() * 42 + 42));
+        displayer.anchor.setTo(0.5, 0.5);
+        unit.isHero ? displayer.scale.setTo(0.75, 0.75) : displayer.scale.setTo(0.45, 0.45);
+        unit.display = displayer;
     }
 })(Wonder || (Wonder = {}));
 var __extends = this.__extends || function (d, b) {
@@ -288,52 +290,36 @@ var __extends = this.__extends || function (d, b) {
 };
 var Wonder;
 (function (Wonder) {
+    (function (UNIT_STATES) {
+        UNIT_STATES[UNIT_STATES["IDLE"] = 0] = "IDLE";
+        UNIT_STATES[UNIT_STATES["MOVING"] = 1] = "MOVING";
+        UNIT_STATES[UNIT_STATES["ATTACKING"] = 2] = "ATTACKING";
+        UNIT_STATES[UNIT_STATES["DEAD"] = -1] = "DEAD";
+    })(Wonder.UNIT_STATES || (Wonder.UNIT_STATES = {}));
+    var UNIT_STATES = Wonder.UNIT_STATES;
     var Unit = (function () {
         function Unit(id) {
             this.isHero = false;
-            this.isMoving = false;
-            this.isAttacking = false;
-            this.isDead = false;
-            this.separation = new Wonder.Vec2(0, 0);
-            this.randomFollow = new Wonder.Vec2(0, 0);
             this.id = id;
             this.init();
         }
-        Unit.prototype.isIdle = function () {
-            return !this.isMoving && !this.isAttacking && !this.isDead;
-        };
         Unit.prototype.init = function () {
             this.isHero = false;
+            this.state = 0 /* IDLE */;
             this.agent = new Wonder.UnitAgent(this);
         };
         Unit.prototype.update = function (time) {
             this.agent.update(time);
         };
         Unit.prototype.render = function (time) {
-            this.displayer.x = this.agent.x;
-            this.displayer.y = this.agent.y;
+            this.display.x = this.agent.x;
+            this.display.y = this.agent.y;
         };
         Unit.prototype.move = function () {
-            this.isMoving = true;
-            this.isAttacking = false;
-            if (this.target === this.squad.hero)
-                this.follow();
             this.agent.x += this.agent.velocity.x;
             this.agent.y += this.agent.velocity.y;
         };
-        Unit.prototype.follow = function () {
-            var hero = this.squad.hero;
-            var hero_v = this.squad.hero.agent.velocity;
-            if (this.squad.team.frameCount % 10 === 0) {
-                var seed = this.squad.team.seed;
-                this.randomFollow.x = seed.nextRange(-0.15, 0.15, false);
-                this.randomFollow.y = seed.nextRange(-0.15, 0.15, false);
-            }
-            this.agent.velocity = hero_v.add(this.randomFollow);
-        };
         Unit.prototype.attack = function () {
-            this.isAttacking = true;
-            this.isMoving = false;
         };
         return Unit;
     })();
@@ -345,40 +331,8 @@ var Wonder;
         }
         Hero.prototype.init = function () {
             this.isHero = true;
+            this.state = 0 /* IDLE */;
             this.agent = new Wonder.HeroAgent(this);
-        };
-        Hero.prototype.move = function () {
-            this.isMoving = true;
-            this.isAttacking = false;
-            var dx = this.target.agent.x - this.agent.x;
-            var dy = this.target.agent.y - this.agent.y;
-            var vec2 = Wonder.normalize(dx, dy);
-            this.agent.velocity = vec2.mul(2);
-            if (this.squad.team.frameCount % 12 === 0) {
-                var team = this.squad.team;
-                var len = team.getSquadsNumber();
-                var neighboursCount = 0;
-                for (var i = 0; i < len; i++) {
-                    var neighbour = team.squads[i];
-                    if (!neighbour.hero.isDead && !neighbour.hero.isMoving) {
-                        var d = Wonder.getUnitDistance(neighbour.hero, this);
-                        if (d <= 120) {
-                            dx = this.agent.x - neighbour.hero.agent.x;
-                            dy = this.agent.y - neighbour.hero.agent.y;
-                            this.separation.x += dx != 0 ? 1 / dx : 0;
-                            this.separation.y += dy != 0 ? 1 / dy : 0;
-                            neighboursCount++;
-                        }
-                    }
-                }
-                if (neighboursCount > 0)
-                    this.separation = this.separation.div(neighboursCount).normalize().mul(0.75);
-                else
-                    this.separation = new Wonder.Vec2(0, 0);
-            }
-            this.agent.velocity = this.agent.velocity.add(this.separation);
-            this.agent.x += this.agent.velocity.x;
-            this.agent.y += this.agent.velocity.y;
         };
         return Hero;
     })(Unit);
@@ -402,18 +356,27 @@ var Wonder;
             this.y = this.pos.y;
         };
         UnitAgent.prototype.update = function (time) {
-            if (this.unit.isIdle()) {
-                this.unit.target = this.unit.squad.hero;
-                this.unit.move();
-                return;
-            }
-            if (this.unit.target && this.unit.isMoving) {
-                if (this.unit.squad.hero.isMoving) {
-                    this.unit.move();
-                }
-                else if (this.unit.squad.hero.isAttacking) {
-                    findTargetFromSquad(this.unit, this.unit.squad.hero.target.squad);
-                }
+            switch (this.unit.state) {
+                case 0 /* IDLE */:
+                    this.unit.target = findNextTarget(this.unit);
+                    if (this.unit.target)
+                        this.unit.state = 1 /* MOVING */;
+                    break;
+                case 1 /* MOVING */:
+                    if (this.unit.target && this.unit.target.state != -1 /* DEAD */) {
+                        if (outOfRange(this.unit, this.unit.target)) {
+                            this.velocity = Wonder.normalize((this.unit.target.agent.x - this.x), (this.unit.target.agent.y - this.y)).mul(2);
+                            this.unit.move();
+                        }
+                    }
+                    else {
+                        this.unit.state = 0 /* IDLE */;
+                    }
+                    break;
+                case 2 /* ATTACKING */:
+                    break;
+                case -1 /* DEAD */:
+                    break;
             }
         };
         return UnitAgent;
@@ -424,22 +387,6 @@ var Wonder;
         function HeroAgent(unit) {
             _super.call(this, unit);
         }
-        HeroAgent.prototype.update = function (time) {
-            if (this.unit.isIdle()) {
-                var target = findNearestHero(this.unit);
-                this.unit.target = target;
-                this.unit.move();
-                return;
-            }
-            if (this.unit.target && this.unit.isMoving) {
-                if (outOfRange(this.unit, this.unit.target)) {
-                    this.unit.move();
-                }
-                else {
-                    this.unit.attack();
-                }
-            }
-        };
         return HeroAgent;
     })(UnitAgent);
     Wonder.HeroAgent = HeroAgent;
@@ -447,23 +394,44 @@ var Wonder;
         return Wonder.distance(a.agent.x, a.agent.y, b.agent.x, b.agent.y);
     }
     Wonder.getUnitDistance = getUnitDistance;
+    function findNextTarget(unit) {
+        var enemy = unit.squad.team.enemy;
+        var len = enemy.getSquadsNumber();
+        var squad;
+        var target;
+        var distance = Infinity;
+        if (unit.target) {
+        }
+        else {
+            if (!unit.isHero && unit.squad.hero.target) {
+                var targetSquad = unit.squad.hero.target.squad;
+                target = targetSquad.units[unit.position];
+                if (!target)
+                    target = targetSquad.units[0];
+            }
+            else {
+                for (var i = 0; i < len; i++) {
+                    squad = enemy.squads[i];
+                    var opponent = squad.units[unit.position];
+                    if (!opponent)
+                        opponent = squad.units[0];
+                    if (opponent) {
+                        var d = getUnitDistance(unit, opponent);
+                        if (d < distance) {
+                            distance = d;
+                            target = opponent;
+                        }
+                    }
+                }
+            }
+            return target;
+        }
+    }
     function findNearestHero(hero) {
         var distance = Infinity;
         var nearest = null;
         var enemy = hero.squad.team.enemy;
         var len = enemy.getSquadsNumber();
-        for (var i = 0; i < len; i++) {
-            var e_squad = enemy.squads[i];
-            if (!e_squad.hero.isDead) {
-                var d = getUnitDistance(e_squad.hero, hero);
-                if (d < distance) {
-                    distance = d;
-                    nearest = e_squad.hero;
-                }
-            }
-            else {
-            }
-        }
         return nearest;
     }
     function outOfRange(attacker, target) {
@@ -478,6 +446,9 @@ var Wonder;
 var WonderCraft = (function () {
     function WonderCraft() {
         var _this = this;
+        this.preload = function (game) {
+            game.load.spritesheet("heroes", "../assets/heroes.png", 35, 51);
+        };
         this.create = function (game) {
             game.time.advancedTiming = true;
             var seed = new Wonder.Random("TheSecretLifeOfWalterMitty");
@@ -490,16 +461,22 @@ var WonderCraft = (function () {
             Wonder.initDebugDraw(game, _this.teamA);
             Wonder.initDebugDraw(game, _this.teamB);
         };
+        this.count = 0;
         this.update = function (game) {
-            _this.teamA.update();
-            _this.teamB.update();
+            if (_this.count > 120) {
+                _this.teamA.update();
+                _this.teamB.update();
+            }
+            _this.count++;
         };
         this.render = function (game) {
             _this.teamA.render();
             _this.teamB.render();
+            if (_this.count % 5 === 0)
+                game.world.sort("y", Phaser.Group.SORT_ASCENDING);
             game.debug.text(game.time.fps.toString(), 2, 14, "#00FF00");
         };
-        this.game = new Phaser.Game(WonderCraft.STAGE_WIDTH, WonderCraft.STAGE_HEIGHT, Phaser.CANVAS, "body", { create: this.create, update: this.update, render: this.render });
+        this.game = new Phaser.Game(WonderCraft.STAGE_WIDTH, WonderCraft.STAGE_HEIGHT, Phaser.CANVAS, "body", { preload: this.preload, create: this.create, update: this.update, render: this.render });
     }
     WonderCraft.STAGE_WIDTH = 1334;
     WonderCraft.STAGE_HEIGHT = 750;

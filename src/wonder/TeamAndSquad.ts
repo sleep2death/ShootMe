@@ -24,8 +24,8 @@ module Wonder {
     //attack ranges
     enum ATTACK_RANGE {
         MELEE = 20,
-        MEDIUM = 120,
-        LONG = 250
+        MEDIUM = 150,
+        LONG = 300
     }
     var RANGES: Array<number> = [ATTACK_RANGE.MELEE, ATTACK_RANGE.MEDIUM, ATTACK_RANGE.LONG];
 
@@ -52,10 +52,11 @@ module Wonder {
             var len: number = this.getSquadsNumber();
             for (var i: number = 0; i < len; i++) {
                 var squad = this.squads[i];
-                squad.hero.update(FRAMERATE);
                 var l = squad.units.length;
-                for(var j:number = 0; j < l;j++){
+                for (var j: number = 0; j < l; j++) {
                     var unit = squad.units[j];
+                    //if unit is dead, then move it frome units to bodies
+                    if(unit.state === UNIT_STATES.DEAD) squad.killUnit(unit);
                     unit.update(FRAMERATE);
                 }
             }
@@ -69,9 +70,8 @@ module Wonder {
             var len: number = this.getSquadsNumber();
             for (var i: number = 0; i < len; i++) {
                 var squad = this.squads[i];
-                squad.hero.render(FRAMERATE);
                 var l = squad.units.length;
-                for(var j:number = 0; j < l;j++){
+                for (var j: number = 0; j < l; j++) {
                     var unit = squad.units[j];
                     unit.render(FRAMERATE);
                 }
@@ -100,8 +100,20 @@ module Wonder {
         position: number;
         //squad target
         target: Squad;
-        //units
-        units: Array<Unit> = [];
+
+        //living units
+        units: Array<IUnit> = [];
+        //dead units
+        bodies: Array<IUnit> = [];
+
+        killUnit(unit: IUnit) {
+            var index : number;
+            //if unit is in the units and the bodies.
+            if ((index = this.units.indexOf(unit)) > -1 && this.bodies.indexOf(unit) < 0) {
+                this.units.splice(index, 1);
+                this.bodies.push(unit);
+            }
+        }
 
         debug_color: number;
 
@@ -110,18 +122,14 @@ module Wonder {
             this.debug_color = debug_color;
         }
 
-        setHero(hero: Hero) {
-            this.hero = hero;
-            hero.squad = this;
-        }
-
         getUnitsNumber(): number {
             return this.units.length;
         }
 
-        addUnit(unit: Unit) {
+        addUnit(unit: IUnit) {
             unit.squad = this;
             unit.team = this.team;//just add a shortcut;
+            unit.position = this.units.length;//remember the unit position for quick target finding
             this.units.push(unit);
         }
     }
@@ -138,12 +146,16 @@ module Wonder {
             squad.position = SQUAD_POSITIONS[i];
 
             var hero: Hero = new Hero(rnd.nextUInt());
-            squad.setHero(hero);
+            //squad.setHero(hero);
             hero.range = RANGES[rnd.nextRange(0, RANGES.length - 1)];
+            squad.addUnit(hero);
+            squad.hero = hero;
 
             var unit_number_range: number = rnd.nextRange(10, 15);// two columns ~ three columns
+
             for (var j = 0; j < unit_number_range; j++) {
                 var unit = new Unit(j);
+                unit.range = hero.range;
                 squad.addUnit(unit);
             }
 
@@ -160,23 +172,18 @@ module Wonder {
     export function initDebugDraw(game: Phaser.Game, team: Team) {
         var side: number = team.side;
         var len: number = team.getSquadsNumber();
-        var squad_w = 1334 / 16;
-        var squad_h = (750 - 200) / 5;
+        var squad_w = 1334 / 14;
+        var squad_h = (750 - 100) / 5;
         var unit_radius = 12;
         var hero_radius = 16;
-        var padding = 4;
+        var padding = 10;
         //get all squads and units to draw
-        for (var i:number = 0; i < len;i++) {
-            var squad : Squad = team.squads[i];
+        for (var i: number = 0; i < len; i++) {
+            var squad: Squad = team.squads[i];
             var s_col = side == 0 ? squad.position % 4 : 3 - (squad.position % 4);
             var s_row = Math.floor(squad.position / 4);
             var s_x = side == 0 ? s_col * squad_w + squad_w : 1334 - (s_col * squad_w + squad_w);
-            var s_y = s_row * squad_h + squad_h * 0.5 + 100;
-
-            //debug draw squad hero
-            addDebugShape(game, squad.hero, hero_radius, squad.debug_color, side);
-            squad.hero.agent.x = squad.hero.displayer.x = s_x;
-            squad.hero.agent.y = squad.hero.displayer.y = s_y;
+            var s_y = s_row * squad_h + squad_h * 0.5 + 50;
 
             var l: number = squad.getUnitsNumber();
             var pos: number = 0;
@@ -184,34 +191,33 @@ module Wonder {
             var start_x: number = side == 0 ? s_x - hero_radius - padding : s_x + hero_radius + padding;
             var start_y: number = s_y - 2 * (unit_radius + padding);
 
-            for (var j : number = 0; j < l; j++) {
-                var unit : Unit = squad.units[j];
-                var u_x = side == 0 ? start_x - Math.floor(pos / 5) * (unit_radius + padding) : start_x + Math.floor(pos / 5) * (unit_radius + padding)
-                var u_y = start_y + pos % 5 * (unit_radius + padding);
+            for (var j: number = 0; j < l; j++) {
+                var unit: IUnit = squad.units[j];
+                var u_x: number;
+                var u_y: number;
+                if (j > 0) {
+                    //unit
+                    u_x = side == 0 ? start_x - Math.floor(pos / 5) * (unit_radius + padding) : start_x + Math.floor(pos / 5) * (unit_radius + padding)
+                    u_y = start_y + pos % 5 * (unit_radius + padding);
+                    pos++;
+                } else {
+                    //hero
+                    u_x = s_x;
+                    u_y = s_y;
+                }
 
                 addDebugShape(game, unit, unit_radius, squad.debug_color, side);
 
-                unit.agent.x = unit.displayer.x = u_x;
-                unit.agent.y = unit.displayer.y = u_y;
-                pos++;
+                unit.agent.x = u_x;
+                unit.agent.y = u_y;
             }
         }
     }
 
-    function addDebugShape(game: Phaser.Game, unit: Unit, radius: number, color: number, side: number) {
-        var displayer = game.add.sprite(0, 0);
-        var g: Phaser.Graphics = game.make.graphics(0, 0);
-
-        g.lineStyle(2, color);
-        g.drawCircle(0, 0, radius);
-        g.moveTo(0, 0);
-        if (side == 0) {
-            g.lineTo(radius * 0.5, 0);
-        } else {
-            g.lineTo(-radius * 0.5, 0);
-        }
-        g.cacheAsBitmap = true;
-        displayer.addChild(g);
-        unit.displayer = displayer;
+    function addDebugShape(game: Phaser.Game, unit: IUnit, radius: number, color: number, side: number) {
+        var displayer = game.add.sprite(0, 0, "heroes", side == 0 ? Math.floor(Math.random() * 42) : Math.floor(Math.random() * 42 + 42));
+        displayer.anchor.setTo(0.5, 0.5);
+        unit.isHero ? displayer.scale.setTo(0.75, 0.75) : displayer.scale.setTo(0.45, 0.45);
+        unit.display = displayer;
     }
 }

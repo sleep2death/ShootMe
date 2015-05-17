@@ -12,7 +12,11 @@ class WonderCraft {
 
     constructor() {
         //always use canvas to get better performance
-        this.game = new Phaser.Game(WonderCraft.STAGE_WIDTH, WonderCraft.STAGE_HEIGHT, Phaser.CANVAS, "body", { create: this.create, update: this.update, render: this.render });
+        this.game = new Phaser.Game(WonderCraft.STAGE_WIDTH, WonderCraft.STAGE_HEIGHT, Phaser.CANVAS, "body", { preload: this.preload, create: this.create, update: this.update, render: this.render });
+    }
+
+    preload = (game: Phaser.Game) => {
+        game.load.spritesheet("heroes", "../assets/heroes.png", 35, 51);
     }
 
     create = (game: Phaser.Game) => {
@@ -34,16 +38,19 @@ class WonderCraft {
     }
 
     //wait 2 seconds to start
+    count = 0;
     update = (game: Phaser.Game) => {
-        this.teamA.update();
-        this.teamB.update();
+        if (this.count > 120) {
+            this.teamA.update();
+            this.teamB.update();
+        }
+        this.count++;
     }
 
-    render = (game: Phaser.Game) => {
+render = (game: Phaser.Game) => {
         this.teamA.render();
         this.teamB.render();
-        //if (this.frames % 60 == 0) game.world.sort("y", Phaser.Group.SORT_ASCENDING);
-        ///this.frames++;
+        if (this.count % 5 === 0) game.world.sort("y", Phaser.Group.SORT_ASCENDING);
         game.debug.text(game.time.fps.toString(), 2, 14, "#00FF00");
     }
 }
