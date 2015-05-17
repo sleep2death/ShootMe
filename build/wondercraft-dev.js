@@ -447,7 +447,7 @@ var WonderCraft = (function () {
     function WonderCraft() {
         var _this = this;
         this.preload = function (game) {
-            game.load.spritesheet("heroes", "../assets/heroes.png", 35, 51);
+            game.load.spritesheet("heroes", "assets/heroes.png", 35, 51);
         };
         this.create = function (game) {
             game.time.advancedTiming = true;
