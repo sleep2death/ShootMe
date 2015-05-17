@@ -16,7 +16,7 @@ class WonderCraft {
     }
 
     preload = (game: Phaser.Game) => {
-        game.load.spritesheet("heroes", "../assets/heroes.png", 35, 51);
+        game.load.spritesheet("heroes", "assets/heroes.png", 35, 51);
     }
 
     create = (game: Phaser.Game) => {
