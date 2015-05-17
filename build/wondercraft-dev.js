@@ -451,8 +451,6 @@ var WonderCraft = (function () {
         };
         this.create = function (game) {
             game.time.advancedTiming = true;
-            game.scale.pageAlignHorizontally = true;
-            game.scale.pageAlignVertically = true;
             var seed = new Wonder.Random("TheSecretLifeOfWalterMitty");
             _this.teamA = Wonder.buildTestTeam(seed, "red");
             _this.teamB = Wonder.buildTestTeam(seed, "blue");
