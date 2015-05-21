@@ -2,8 +2,11 @@
 class WonderCraft {
     "use strict";
 
-    static STAGE_WIDTH = 1334;
-    static STAGE_HEIGHT = 750;
+    static STAGE_WIDTH = 1200;
+    static STAGE_HEIGHT = 670;
+
+    static WORLD_WIDTH = 2000;
+    static WORLD_HEIGHT = 900;
 
 
     game: Phaser.Game;
@@ -13,6 +16,9 @@ class WonderCraft {
     constructor() {
         //always use canvas to get better performance
         this.game = new Phaser.Game(WonderCraft.STAGE_WIDTH, WonderCraft.STAGE_HEIGHT, Phaser.CANVAS, "body", { preload: this.preload, create: this.create, update: this.update, render: this.render });
+        this.game.camera.bounds = new Phaser.Rectangle(0, 0, WonderCraft.WORLD_WIDTH, WonderCraft.WORLD_HEIGHT);
+        this.game.camera.roundPx = true;
+        this.game.camera.setSize(WonderCraft.STAGE_WIDTH, WonderCraft.STAGE_HEIGHT);
     }
 
     preload = (game: Phaser.Game) => {

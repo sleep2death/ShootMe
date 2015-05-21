@@ -27,6 +27,7 @@ module Wonder {
         range: number;
         armor: number;
         armor_type: number;
+        speed:number;
 
         isHero: boolean;
         //unit statements
@@ -62,6 +63,7 @@ module Wonder {
         range: number;
         armor: number;
         armor_type: number;
+        speed: number = 2;
 
         isHero: boolean = false;
 
@@ -86,7 +88,7 @@ module Wonder {
 
         //just move the display to agent's position, and play the certain animation
         render(time: number) {
-            this.display.x = this.agent.x;
+            this.display.x = this.agent.x + this.agent.y*0.3;
             this.display.y = this.agent.y;
         }
 

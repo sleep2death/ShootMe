@@ -4,8 +4,6 @@ module Wonder {
 
         x: number;
         y: number;
-        getPosition(): Vec2;
-        setPosition(v: Vec2): void;
         velocity: Vec2;
 
         update(time: number);
@@ -16,20 +14,6 @@ module Wonder {
 
         x: number;
         y: number;
-
-        pos: Vec2 = new Vec2(0, 0);
-
-        getPosition(): Vec2 {
-            this.pos.x = this.x;
-            this.pos.y = this.y;
-            return this.pos;
-        }
-
-        setPosition(v: Vec2): void {
-            this.pos = v;
-            this.x = this.pos.x;
-            this.y = this.pos.y;
-        }
 
         velocity: Vec2;
 
@@ -46,9 +30,15 @@ module Wonder {
                     break;
                 case UNIT_STATES.MOVING:
                     if (this.unit.target && this.unit.target.state != UNIT_STATES.DEAD) {
-                        if(outOfRange(this.unit, this.unit.target)){
-                            this.velocity = normalize((this.unit.target.agent.x - this.x),(this.unit.target.agent.y - this.y)).mul(2);
+                        var distance: number = getUnitDistance(this.unit, this.unit.target);
+                        var delta: number = distance - this.unit.range;
+                        if (delta > 0) {
+                            this.velocity = normalize((this.unit.target.agent.x - this.x), (this.unit.target.agent.y - this.y)).mul(this.unit.speed);
+                            //seprate&cohesion from each other in this squad
+                            var steer = steering(this.unit);
                             this.unit.move();
+                        } else {
+                            this.unit.state = UNIT_STATES.ATTACKING;
                         }
                     } else {
                         this.unit.state = UNIT_STATES.IDLE;//set to idle and wait for next frame, if target is null or dead
@@ -60,6 +50,20 @@ module Wonder {
                     break;
             }
         }
+
+
+
+        // randomMove: Vec2 = new Vec2();
+        // randomMoveScale : number = 0.0;
+        //
+        // randomVelocity() {
+        //     if (this.unit.squad.team.frameCount % 17 == 0) {
+        //         var seed: Random = this.unit.squad.team.seed;
+        //         this.randomMove.x = seed.nextRange(-1, 1, false);
+        //         this.randomMove.y = seed.nextRange(-1, 1, false);
+        //     }
+        // }
+
     }
 
     export class HeroAgent extends UnitAgent implements IAgent {
@@ -87,7 +91,7 @@ module Wonder {
         if (unit.target) {
             //TODO: find next target in the same squad
         } else {
-            //if unit's hero has target, then find the target in the same squad
+            //if unit's squad hero has a target, then find the target in the same squad
             if (!unit.isHero && unit.squad.hero.target) {
                 var targetSquad: Squad = unit.squad.hero.target.squad;
                 target = targetSquad.units[unit.position];
@@ -113,42 +117,61 @@ module Wonder {
             }
 
             //if the target is null, then the unit will set to idle state and wait for next frame...
+            //return only living or null target...
             return target;
         }
     }
 
-    //find the nearest squad based on the position of the squad's hero
-    function findNearestHero(hero: Hero): Hero {
-        var distance = Infinity;
-        var nearest: Hero = null;
-
-        //get the enemy
-        var enemy: Team = hero.squad.team.enemy;
-        var len = enemy.getSquadsNumber();
-
-        // for (var i:number = 0; i < len;i++) {
-        //     var e_squad = enemy.squads[i];
-        //     //check the distance if the target hero is alive
-        //     if (!e_squad.hero.isDead) {
-        //         var d = getUnitDistance(e_squad.hero, hero);
-        //         if (d < distance) {
-        //             distance = d;
-        //             nearest = e_squad.hero;
-        //         }
-        //     } else {
-        //         //TODO: find a living unit
-        //     }
-        // }
-        return nearest;
-    }
-
     function outOfRange(attacker: IUnit, target: IUnit): boolean {
         var d: number = getUnitDistance(attacker, target);
-        if (d < attacker.range) return false;
+        if (d < attacker.range) {
+            return false;
+        }
+
         return true;
     }
 
-    function findTargetFromSquad(unit: IUnit, squad: Squad) {
+    function steering(unit: IUnit) {
+        var minSeparation = 40;
+        var maxCohesion = 80;
 
+        var separation: Vec2 = new Vec2();
+        var separationScale: number = 0.15;
+
+        var cohesion: Vec2 = new Vec2();
+        var cohesionScale: number = 0.15;
+
+        var len: number = unit.squad.getUnitsNumber();
+        var centerOfMass: Vec2 = new Vec2();
+
+        var s_neighboursCount: number = 0;
+        var c_neighboursCount: number = 0;
+
+        for (var i: number = 0; i < len; i++) {
+            var neighbour: IUnit = unit.squad.units[i];
+            if (neighbour === unit) continue;
+            var distance: number = getUnitDistance(unit.agent.unit, neighbour);
+            if (distance < minSeparation) {
+                var dx: number = (unit.agent.x - neighbour.agent.x);
+                var dy: number = (unit.agent.y - neighbour.agent.y);
+                var pushForce: Vec2 = new Vec2(dx, dy);
+                separation = separation.add(pushForce.mul(1 - (length(dx, dy) / minSeparation)));
+                s_neighboursCount++;
+            } else if (distance > maxCohesion) {
+                centerOfMass.x += neighbour.agent.x;
+                centerOfMass.y += neighbour.agent.y;
+                c_neighboursCount++;
+            }
+        }
+
+        separation = s_neighboursCount > 0 ? separation.div(s_neighboursCount) : separation;
+        if (c_neighboursCount > 0) {
+            centerOfMass = centerOfMass.div(c_neighboursCount);
+            cohesion = normalize((centerOfMass.x - unit.agent.x), (centerOfMass.y - unit.agent.y));
+        }
+
+        unit.agent.velocity.x += separation.x * separationScale + cohesion.x * cohesionScale;
+        unit.agent.velocity.y += separation.y * separationScale + cohesion.y * cohesionScale;
     }
+
 }
