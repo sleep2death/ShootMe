@@ -61,6 +61,8 @@ var Wonder;
     })();
     var Vec2 = (function () {
         function Vec2(x, y) {
+            if (x === void 0) { x = 0; }
+            if (y === void 0) { y = 0; }
             this.x = x;
             this.y = y;
         }
@@ -159,8 +161,6 @@ var Wonder;
                 }
             }
             this.frameCount++;
-            if (this.frameCount === 60)
-                this.frameCount = 0;
         };
         Team.prototype.render = function () {
             var len = this.getSquadsNumber();
@@ -240,17 +240,17 @@ var Wonder;
     function initDebugDraw(game, team) {
         var side = team.side;
         var len = team.getSquadsNumber();
-        var squad_w = 1334 / 14;
-        var squad_h = (750 - 100) / 5;
-        var unit_radius = 12;
-        var hero_radius = 16;
+        var squad_w = WonderCraft.WORLD_WIDTH / 14;
+        var squad_h = (WonderCraft.WORLD_HEIGHT - 10) / 5;
+        var unit_radius = 16;
+        var hero_radius = 20;
         var padding = 10;
         for (var i = 0; i < len; i++) {
             var squad = team.squads[i];
             var s_col = side == 0 ? squad.position % 4 : 3 - (squad.position % 4);
             var s_row = Math.floor(squad.position / 4);
-            var s_x = side == 0 ? s_col * squad_w + squad_w : 1334 - (s_col * squad_w + squad_w);
-            var s_y = s_row * squad_h + squad_h * 0.5 + 50;
+            var s_x = side == 0 ? s_col * squad_w + squad_w : WonderCraft.WORLD_WIDTH - (s_col * squad_w + squad_w);
+            var s_y = s_row * squad_h + squad_h * 0.5 + 5;
             var l = squad.getUnitsNumber();
             var pos = 0;
             var start_x = side == 0 ? s_x - hero_radius - padding : s_x + hero_radius + padding;
@@ -260,7 +260,8 @@ var Wonder;
                 var u_x;
                 var u_y;
                 if (j > 0) {
-                    u_x = side == 0 ? start_x - Math.floor(pos / 5) * (unit_radius + padding) : start_x + Math.floor(pos / 5) * (unit_radius + padding);
+                    var col = Math.floor(pos / 5);
+                    u_x = side == 0 ? start_x - col * (unit_radius + padding) : start_x + col * (unit_radius + padding);
                     u_y = start_y + pos % 5 * (unit_radius + padding);
                     pos++;
                 }
@@ -278,7 +279,7 @@ var Wonder;
     function addDebugShape(game, unit, radius, color, side) {
         var displayer = game.add.sprite(0, 0, "heroes", side == 0 ? Math.floor(Math.random() * 42) : Math.floor(Math.random() * 42 + 42));
         displayer.anchor.setTo(0.5, 0.5);
-        unit.isHero ? displayer.scale.setTo(0.75, 0.75) : displayer.scale.setTo(0.45, 0.45);
+        unit.isHero ? displayer.scale.setTo(1, 1) : displayer.scale.setTo(0.75, 0.75);
         unit.display = displayer;
     }
 })(Wonder || (Wonder = {}));
@@ -299,6 +300,7 @@ var Wonder;
     var UNIT_STATES = Wonder.UNIT_STATES;
     var Unit = (function () {
         function Unit(id) {
+            this.speed = 2;
             this.isHero = false;
             this.id = id;
             this.init();
@@ -312,7 +314,7 @@ var Wonder;
             this.agent.update(time);
         };
         Unit.prototype.render = function (time) {
-            this.display.x = this.agent.x;
+            this.display.x = this.agent.x + this.agent.y * 0.3;
             this.display.y = this.agent.y;
         };
         Unit.prototype.move = function () {
@@ -342,19 +344,8 @@ var Wonder;
 (function (Wonder) {
     var UnitAgent = (function () {
         function UnitAgent(unit) {
-            this.pos = new Wonder.Vec2(0, 0);
             this.unit = unit;
         }
-        UnitAgent.prototype.getPosition = function () {
-            this.pos.x = this.x;
-            this.pos.y = this.y;
-            return this.pos;
-        };
-        UnitAgent.prototype.setPosition = function (v) {
-            this.pos = v;
-            this.x = this.pos.x;
-            this.y = this.pos.y;
-        };
         UnitAgent.prototype.update = function (time) {
             switch (this.unit.state) {
                 case 0 /* IDLE */:
@@ -364,9 +355,15 @@ var Wonder;
                     break;
                 case 1 /* MOVING */:
                     if (this.unit.target && this.unit.target.state != -1 /* DEAD */) {
-                        if (outOfRange(this.unit, this.unit.target)) {
-                            this.velocity = Wonder.normalize((this.unit.target.agent.x - this.x), (this.unit.target.agent.y - this.y)).mul(2);
+                        var distance = getUnitDistance(this.unit, this.unit.target);
+                        var delta = distance - this.unit.range;
+                        if (delta > 0) {
+                            this.velocity = Wonder.normalize((this.unit.target.agent.x - this.x), (this.unit.target.agent.y - this.y)).mul(this.unit.speed);
+                            var steer = steering(this.unit);
                             this.unit.move();
+                        }
+                        else {
+                            this.unit.state = 2 /* ATTACKING */;
                         }
                     }
                     else {
@@ -427,20 +424,49 @@ var Wonder;
             return target;
         }
     }
-    function findNearestHero(hero) {
-        var distance = Infinity;
-        var nearest = null;
-        var enemy = hero.squad.team.enemy;
-        var len = enemy.getSquadsNumber();
-        return nearest;
-    }
     function outOfRange(attacker, target) {
         var d = getUnitDistance(attacker, target);
-        if (d < attacker.range)
+        if (d < attacker.range) {
             return false;
+        }
         return true;
     }
-    function findTargetFromSquad(unit, squad) {
+    function steering(unit) {
+        var minSeparation = 40;
+        var maxCohesion = 80;
+        var separation = new Wonder.Vec2();
+        var separationScale = 0.15;
+        var cohesion = new Wonder.Vec2();
+        var cohesionScale = 0.15;
+        var len = unit.squad.getUnitsNumber();
+        var centerOfMass = new Wonder.Vec2();
+        var s_neighboursCount = 0;
+        var c_neighboursCount = 0;
+        for (var i = 0; i < len; i++) {
+            var neighbour = unit.squad.units[i];
+            if (neighbour === unit)
+                continue;
+            var distance = getUnitDistance(unit.agent.unit, neighbour);
+            if (distance < minSeparation) {
+                var dx = (unit.agent.x - neighbour.agent.x);
+                var dy = (unit.agent.y - neighbour.agent.y);
+                var pushForce = new Wonder.Vec2(dx, dy);
+                separation = separation.add(pushForce.mul(1 - (Wonder.length(dx, dy) / minSeparation)));
+                s_neighboursCount++;
+            }
+            else if (distance > maxCohesion) {
+                centerOfMass.x += neighbour.agent.x;
+                centerOfMass.y += neighbour.agent.y;
+                c_neighboursCount++;
+            }
+        }
+        separation = s_neighboursCount > 0 ? separation.div(s_neighboursCount) : separation;
+        if (c_neighboursCount > 0) {
+            centerOfMass = centerOfMass.div(c_neighboursCount);
+            cohesion = Wonder.normalize((centerOfMass.x - unit.agent.x), (centerOfMass.y - unit.agent.y));
+        }
+        unit.agent.velocity.x += separation.x * separationScale + cohesion.x * cohesionScale;
+        unit.agent.velocity.y += separation.y * separationScale + cohesion.y * cohesionScale;
     }
 })(Wonder || (Wonder = {}));
 var WonderCraft = (function () {
@@ -477,9 +503,14 @@ var WonderCraft = (function () {
             game.debug.text(game.time.fps.toString(), 2, 14, "#00FF00");
         };
         this.game = new Phaser.Game(WonderCraft.STAGE_WIDTH, WonderCraft.STAGE_HEIGHT, Phaser.CANVAS, "body", { preload: this.preload, create: this.create, update: this.update, render: this.render });
+        this.game.camera.bounds = new Phaser.Rectangle(0, 0, WonderCraft.WORLD_WIDTH, WonderCraft.WORLD_HEIGHT);
+        this.game.camera.roundPx = true;
+        this.game.camera.setSize(WonderCraft.STAGE_WIDTH, WonderCraft.STAGE_HEIGHT);
     }
-    WonderCraft.STAGE_WIDTH = 1334;
-    WonderCraft.STAGE_HEIGHT = 750;
+    WonderCraft.STAGE_WIDTH = 1200;
+    WonderCraft.STAGE_HEIGHT = 670;
+    WonderCraft.WORLD_WIDTH = 2000;
+    WonderCraft.WORLD_HEIGHT = 900;
     return WonderCraft;
 })();
 window.onload = function () {

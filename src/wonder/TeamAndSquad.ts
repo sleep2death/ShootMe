@@ -56,13 +56,13 @@ module Wonder {
                 for (var j: number = 0; j < l; j++) {
                     var unit = squad.units[j];
                     //if unit is dead, then move it frome units to bodies
-                    if(unit.state === UNIT_STATES.DEAD) squad.killUnit(unit);
+                    if (unit.state === UNIT_STATES.DEAD) squad.killUnit(unit);
                     unit.update(FRAMERATE);
                 }
             }
 
             this.frameCount++;
-            if (this.frameCount === 60) this.frameCount = 0;
+            //if (this.frameCount === 60) this.frameCount = 0;
         }
 
         render() {
@@ -107,7 +107,7 @@ module Wonder {
         bodies: Array<IUnit> = [];
 
         killUnit(unit: IUnit) {
-            var index : number;
+            var index: number;
             //if unit is in the units and the bodies.
             if ((index = this.units.indexOf(unit)) > -1 && this.bodies.indexOf(unit) < 0) {
                 this.units.splice(index, 1);
@@ -172,18 +172,18 @@ module Wonder {
     export function initDebugDraw(game: Phaser.Game, team: Team) {
         var side: number = team.side;
         var len: number = team.getSquadsNumber();
-        var squad_w = 1334 / 14;
-        var squad_h = (750 - 100) / 5;
-        var unit_radius = 12;
-        var hero_radius = 16;
+        var squad_w = WonderCraft.WORLD_WIDTH / 14;
+        var squad_h = (WonderCraft.WORLD_HEIGHT - 10) / 5;
+        var unit_radius = 16;
+        var hero_radius = 20;
         var padding = 10;
         //get all squads and units to draw
         for (var i: number = 0; i < len; i++) {
             var squad: Squad = team.squads[i];
             var s_col = side == 0 ? squad.position % 4 : 3 - (squad.position % 4);
             var s_row = Math.floor(squad.position / 4);
-            var s_x = side == 0 ? s_col * squad_w + squad_w : 1334 - (s_col * squad_w + squad_w);
-            var s_y = s_row * squad_h + squad_h * 0.5 + 50;
+            var s_x = side == 0 ? s_col * squad_w + squad_w : WonderCraft.WORLD_WIDTH - (s_col * squad_w + squad_w);
+            var s_y = s_row * squad_h + squad_h * 0.5 + 5;
 
             var l: number = squad.getUnitsNumber();
             var pos: number = 0;
@@ -197,7 +197,9 @@ module Wonder {
                 var u_y: number;
                 if (j > 0) {
                     //unit
-                    u_x = side == 0 ? start_x - Math.floor(pos / 5) * (unit_radius + padding) : start_x + Math.floor(pos / 5) * (unit_radius + padding)
+                    var col : number = Math.floor(pos/5);
+
+                    u_x = side == 0 ? start_x - col * (unit_radius + padding) : start_x + col * (unit_radius + padding)
                     u_y = start_y + pos % 5 * (unit_radius + padding);
                     pos++;
                 } else {
@@ -217,7 +219,7 @@ module Wonder {
     function addDebugShape(game: Phaser.Game, unit: IUnit, radius: number, color: number, side: number) {
         var displayer = game.add.sprite(0, 0, "heroes", side == 0 ? Math.floor(Math.random() * 42) : Math.floor(Math.random() * 42 + 42));
         displayer.anchor.setTo(0.5, 0.5);
-        unit.isHero ? displayer.scale.setTo(0.75, 0.75) : displayer.scale.setTo(0.45, 0.45);
+        unit.isHero ? displayer.scale.setTo(1, 1) : displayer.scale.setTo(0.75, 0.75);
         unit.display = displayer;
     }
 }
