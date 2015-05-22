@@ -180,6 +180,27 @@ var Wonder;
             squad.team = this;
             this.squads.push(squad);
         };
+        Team.prototype.getCenter = function () {
+            var len = this.getSquadsNumber();
+            var center = new Wonder.Vec2();
+            var num = 0;
+            for (var i = 0; i < len; i++) {
+                var squad = this.squads[i];
+                var hero = squad.hero;
+                if (hero.state != -1 /* DEAD */) {
+                    center.x += hero.display.x;
+                    center.y += hero.display.y;
+                    num++;
+                }
+            }
+            if (num > 0) {
+                center.x = center.x / num;
+                center.y = center.y / num;
+            }
+            else {
+            }
+            return center;
+        };
         return Team;
     })();
     Wonder.Team = Team;
@@ -242,8 +263,8 @@ var Wonder;
         var len = team.getSquadsNumber();
         var squad_w = WonderCraft.WORLD_WIDTH / 14;
         var squad_h = (WonderCraft.WORLD_HEIGHT - 10) / 5;
-        var unit_radius = 16;
-        var hero_radius = 20;
+        var unit_radius = 18;
+        var hero_radius = 22;
         var padding = 10;
         for (var i = 0; i < len; i++) {
             var squad = team.squads[i];
@@ -279,7 +300,7 @@ var Wonder;
     function addDebugShape(game, unit, radius, color, side) {
         var displayer = game.add.sprite(0, 0, "heroes", side == 0 ? Math.floor(Math.random() * 42) : Math.floor(Math.random() * 42 + 42));
         displayer.anchor.setTo(0.5, 0.5);
-        unit.isHero ? displayer.scale.setTo(1, 1) : displayer.scale.setTo(0.75, 0.75);
+        unit.isHero ? displayer.scale.setTo(0.85, 0.85) : displayer.scale.setTo(0.65, 0.65);
         unit.display = displayer;
     }
 })(Wonder || (Wonder = {}));
@@ -314,7 +335,7 @@ var Wonder;
             this.agent.update(time);
         };
         Unit.prototype.render = function (time) {
-            this.display.x = this.agent.x + this.agent.y * 0.3;
+            this.display.x = this.agent.x + this.agent.y * 0.35;
             this.display.y = this.agent.y;
         };
         Unit.prototype.move = function () {
@@ -435,9 +456,9 @@ var Wonder;
         var minSeparation = 40;
         var maxCohesion = 80;
         var separation = new Wonder.Vec2();
-        var separationScale = 0.15;
+        var separationScale = 0.05;
         var cohesion = new Wonder.Vec2();
-        var cohesionScale = 0.15;
+        var cohesionScale = 0.25;
         var len = unit.squad.getUnitsNumber();
         var centerOfMass = new Wonder.Vec2();
         var s_neighboursCount = 0;
@@ -467,6 +488,26 @@ var Wonder;
         }
         unit.agent.velocity.x += separation.x * separationScale + cohesion.x * cohesionScale;
         unit.agent.velocity.y += separation.y * separationScale + cohesion.y * cohesionScale;
+        var minHeroSeparation = 60;
+        var heroSeparation = new Wonder.Vec2();
+        if (unit.isHero) {
+            len = unit.squad.team.getSquadsNumber();
+            s_neighboursCount = 0;
+            for (i = 0; i < len; i++) {
+                var neighbour = unit.squad.team.squads[i].hero;
+                var distance = getUnitDistance(unit.agent.unit, neighbour);
+                if (distance < minHeroSeparation) {
+                    var dx = (unit.agent.x - neighbour.agent.x);
+                    var dy = (unit.agent.y - neighbour.agent.y);
+                    var pushForce = new Wonder.Vec2(dx, dy);
+                    heroSeparation = heroSeparation.add(pushForce.mul(1 - (Wonder.length(dx, dy) / minHeroSeparation)));
+                    s_neighboursCount++;
+                }
+            }
+            heroSeparation = s_neighboursCount > 0 ? heroSeparation.div(s_neighboursCount) : heroSeparation;
+            unit.agent.velocity.x += heroSeparation.x * 0.1;
+            unit.agent.velocity.y += heroSeparation.y * 0.1;
+        }
     }
 })(Wonder || (Wonder = {}));
 var WonderCraft = (function () {
@@ -476,6 +517,10 @@ var WonderCraft = (function () {
             game.load.spritesheet("heroes", "assets/heroes.png", 35, 51);
         };
         this.create = function (game) {
+            _this.game.camera.bounds = new Phaser.Rectangle(0, 0, WonderCraft.WORLD_WIDTH, WonderCraft.WORLD_HEIGHT);
+            _this.game.camera.roundPx = true;
+            _this.game.camera.setSize(WonderCraft.STAGE_WIDTH, WonderCraft.STAGE_HEIGHT);
+            game.camera.focusOnXY(WonderCraft.WORLD_WIDTH / 2 + (WonderCraft.WORLD_HEIGHT / 2 * 0.35), WonderCraft.WORLD_HEIGHT / 2);
             game.time.advancedTiming = true;
             var seed = new Wonder.Random("TheSecretLifeOfWalterMitty");
             _this.teamA = Wonder.buildTestTeam(seed, "red");
@@ -503,14 +548,11 @@ var WonderCraft = (function () {
             game.debug.text(game.time.fps.toString(), 2, 14, "#00FF00");
         };
         this.game = new Phaser.Game(WonderCraft.STAGE_WIDTH, WonderCraft.STAGE_HEIGHT, Phaser.CANVAS, "body", { preload: this.preload, create: this.create, update: this.update, render: this.render });
-        this.game.camera.bounds = new Phaser.Rectangle(0, 0, WonderCraft.WORLD_WIDTH, WonderCraft.WORLD_HEIGHT);
-        this.game.camera.roundPx = true;
-        this.game.camera.setSize(WonderCraft.STAGE_WIDTH, WonderCraft.STAGE_HEIGHT);
     }
     WonderCraft.STAGE_WIDTH = 1200;
     WonderCraft.STAGE_HEIGHT = 670;
-    WonderCraft.WORLD_WIDTH = 2000;
-    WonderCraft.WORLD_HEIGHT = 900;
+    WonderCraft.WORLD_WIDTH = 1400;
+    WonderCraft.WORLD_HEIGHT = 670;
     return WonderCraft;
 })();
 window.onload = function () {

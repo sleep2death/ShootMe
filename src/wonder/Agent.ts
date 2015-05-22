@@ -50,20 +50,6 @@ module Wonder {
                     break;
             }
         }
-
-
-
-        // randomMove: Vec2 = new Vec2();
-        // randomMoveScale : number = 0.0;
-        //
-        // randomVelocity() {
-        //     if (this.unit.squad.team.frameCount % 17 == 0) {
-        //         var seed: Random = this.unit.squad.team.seed;
-        //         this.randomMove.x = seed.nextRange(-1, 1, false);
-        //         this.randomMove.y = seed.nextRange(-1, 1, false);
-        //     }
-        // }
-
     }
 
     export class HeroAgent extends UnitAgent implements IAgent {
@@ -74,7 +60,6 @@ module Wonder {
 
 
     //PATH FINDING FUNCTIONS HERE:
-
     export function getUnitDistance(a: IUnit, b: IUnit): number {
         return distance(a.agent.x, a.agent.y, b.agent.x, b.agent.y);
     }
@@ -136,10 +121,10 @@ module Wonder {
         var maxCohesion = 80;
 
         var separation: Vec2 = new Vec2();
-        var separationScale: number = 0.15;
+        var separationScale: number = 0.05;
 
         var cohesion: Vec2 = new Vec2();
-        var cohesionScale: number = 0.15;
+        var cohesionScale: number = 0.25;
 
         var len: number = unit.squad.getUnitsNumber();
         var centerOfMass: Vec2 = new Vec2();
@@ -165,6 +150,7 @@ module Wonder {
         }
 
         separation = s_neighboursCount > 0 ? separation.div(s_neighboursCount) : separation;
+
         if (c_neighboursCount > 0) {
             centerOfMass = centerOfMass.div(c_neighboursCount);
             cohesion = normalize((centerOfMass.x - unit.agent.x), (centerOfMass.y - unit.agent.y));
@@ -172,6 +158,29 @@ module Wonder {
 
         unit.agent.velocity.x += separation.x * separationScale + cohesion.x * cohesionScale;
         unit.agent.velocity.y += separation.y * separationScale + cohesion.y * cohesionScale;
-    }
 
+        var minHeroSeparation: number = 60;
+        var heroSeparation: Vec2 = new Vec2();
+
+        if (unit.isHero) {
+            //seprate from other heroes
+            len = unit.squad.team.getSquadsNumber();
+            s_neighboursCount = 0;
+            for (i = 0; i < len; i++) {
+                var neighbour: IUnit = unit.squad.team.squads[i].hero;
+                var distance: number = getUnitDistance(unit.agent.unit, neighbour);
+                if (distance < minHeroSeparation) {
+                    var dx: number = (unit.agent.x - neighbour.agent.x);
+                    var dy: number = (unit.agent.y - neighbour.agent.y);
+                    var pushForce: Vec2 = new Vec2(dx, dy);
+                    heroSeparation = heroSeparation.add(pushForce.mul(1 - (length(dx, dy) / minHeroSeparation)));
+                    s_neighboursCount++;
+                }
+            }
+
+            heroSeparation = s_neighboursCount > 0 ? heroSeparation.div(s_neighboursCount) : heroSeparation;
+            unit.agent.velocity.x += heroSeparation.x * 0.1;
+            unit.agent.velocity.y += heroSeparation.y * 0.1;
+        }
+    }
 }

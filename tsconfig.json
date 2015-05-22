@@ -20,6 +20,7 @@
         "./src/wonder/Agent.ts",
         "./src/wonder/TeamAndSquad.ts",
         "./src/wonder/Unit.ts",
+        "./src/wonder/UnitStats.ts",
         "./typings/phaser/phaser.d.ts",
         "./typings/browserify/browserify.d.ts"
     ]
