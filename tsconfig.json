@@ -21,6 +21,9 @@
         "./src/wonder/TeamAndSquad.ts",
         "./src/wonder/Unit.ts",
         "./src/wonder/UnitStats.ts",
+        "./src/wonder/data/units/Elf.ts",
+        "./src/wonder/data/units/Human.ts",
+        "./src/wonder/data/units/UnitStats.ts",
         "./typings/phaser/phaser.d.ts",
         "./typings/browserify/browserify.d.ts"
     ]
