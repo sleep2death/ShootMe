@@ -22,7 +22,7 @@ module Wonder {
     var DEBUG_COLOR_HUES: Array<string>=["red","orange","yellow","green","blue","purple","pink"];
 
     //attack ranges
-    enum ATTACK_RANGE {
+    export enum ATTACK_RANGE {
         MELEE=20,
         MEDIUM=150,
         LONG=300
@@ -142,7 +142,7 @@ module Wonder {
 
         debug_color: number;
 
-        constructor(id: number,debug_color: number) {
+        constructor(id: number,debug_color: number = 0) {
             this.id=id;
             this.debug_color=debug_color;
         }
@@ -157,6 +157,83 @@ module Wonder {
             unit.position=this.units.length;//remember the unit position for quick target finding
             this.units.push(unit);
         }
+    }
+
+    export function buildTeam(game:Phaser.Game, data):Team{
+        var team = new Team(data.id);
+        var squadNumber = data.squads.length;
+
+        for(var i:number = 0;i<squadNumber; i++){
+            var s_data = data.squads[i];
+            var squad = new Squad(s_data.id);
+            squad.position = s_data.position;
+
+            var hero = new Hero(s_data.hero.id);
+            squad.addUnit(hero);
+            squad.hero = hero;
+
+            for(var j : number = 0; j < s_data.units.number; j++){
+                var unit = new Unit(s_data.units.id);
+                squad.addUnit(unit);
+            }
+
+            team.addSquad(squad);
+        }
+        return team;
+    }
+
+    export function initTeam(game:Phaser.Game, team:Team):void{
+        var side: number=team.side;
+        var len: number=team.getSquadsNumber();
+        var squad_w=WonderCraft.WORLD_WIDTH/14;
+        var squad_h=(WonderCraft.WORLD_HEIGHT-10)/5;
+        var unit_radius=20;
+        var hero_radius=24;
+        var padding=10;
+        //get all squads and units to draw
+        for(var i: number=0;i<len;i++) {
+            var squad: Squad=team.squads[i];
+            var s_col=side==0? squad.position%4:3-(squad.position%4);
+            var s_row=Math.floor(squad.position/4);
+            var s_x=side==0? s_col*squad_w+squad_w:WonderCraft.WORLD_WIDTH-(s_col*squad_w+squad_w);
+            var s_y=s_row*squad_h+squad_h*0.5+5;
+
+            var l: number=squad.getUnitsNumber();
+            var pos: number=0;
+
+            var start_x: number=side==0? s_x-hero_radius-padding:s_x+hero_radius+padding;
+            var start_y: number=s_y-2*(unit_radius+padding);
+
+            for(var j: number=0;j<l;j++) {
+                var unit: IUnit=squad.units[j];
+                var u_x: number;
+                var u_y: number;
+                if(j>0) {
+                    //unit
+                    var col: number=Math.floor(pos/5);
+
+                    u_x=side==0? start_x-col*(unit_radius+padding):start_x+col*(unit_radius+padding)
+                    u_y=start_y+pos%5*(unit_radius+padding);
+                    pos++;
+                } else {
+                    //hero
+                    u_x=s_x;
+                    u_y=s_y;
+                }
+
+                addSprite(game,unit,side);
+
+                unit.agent.x=u_x;
+                unit.agent.y=u_y;
+            }
+        }
+    }
+
+    function addSprite(game: Phaser.Game,unit: IUnit,side: number) {
+        var displayer=game.add.sprite(0,0,"units",unit.id);
+        displayer.anchor.setTo(0.5,0.5);
+        unit.isHero? displayer.scale.setTo(0.85,0.85):displayer.scale.setTo(0.65,0.65);
+        unit.display=displayer;
     }
 
     export function buildTestTeam(rnd: Random,color_hue: string=null): Team {
@@ -186,6 +263,7 @@ module Wonder {
 
             var rc=(<string>RandomColor({ hue: team.debug_hue })).slice(1);
             squad.debug_color=parseInt("0x"+rc);
+            if(squad.position === 0)console.log("got squad 0");
 
             team.addSquad(squad);
             team.seed=rnd;
@@ -194,11 +272,12 @@ module Wonder {
         return team;
     }
 
+
     export function initDebugDraw(game: Phaser.Game,team: Team) {
         var side: number=team.side;
         var len: number=team.getSquadsNumber();
         var squad_w=WonderCraft.WORLD_WIDTH/14;
-        var squad_h=(WonderCraft.WORLD_HEIGHT-10)/5;
+        var squad_h=(WonderCraft.WORLD_HEIGHT)/5;
         var unit_radius=18;
         var hero_radius=22;
         var padding=10;
@@ -208,7 +287,7 @@ module Wonder {
             var s_col=side==0? squad.position%4:3-(squad.position%4);
             var s_row=Math.floor(squad.position/4);
             var s_x=side==0? s_col*squad_w+squad_w:WonderCraft.WORLD_WIDTH-(s_col*squad_w+squad_w);
-            var s_y=s_row*squad_h+squad_h*0.5+5;
+            var s_y=s_row*squad_h+squad_h*0.5;
 
             var l: number=squad.getUnitsNumber();
             var pos: number=0;

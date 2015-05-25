@@ -6,7 +6,7 @@ class WonderCraft {
     static STAGE_HEIGHT = 670;
 
     static WORLD_WIDTH = 1400;
-    static WORLD_HEIGHT = 670;
+    static WORLD_HEIGHT = 760;
 
 
     game: Phaser.Game;
@@ -20,17 +20,24 @@ class WonderCraft {
 
     preload = (game: Phaser.Game) => {
         game.load.spritesheet("heroes", "assets/heroes.png", 35, 51);
+        game.load.json("teamA", "assets/data/TestTeamA.json");
+        game.load.atlasJSONHash("units", "assets/Units.png", "assets/Units.json");
     }
 
     create = (game: Phaser.Game) => {
         this.game.camera.bounds = new Phaser.Rectangle(0, 0, WonderCraft.WORLD_WIDTH, WonderCraft.WORLD_HEIGHT);
         this.game.camera.roundPx = true;
         this.game.camera.setSize(WonderCraft.STAGE_WIDTH, WonderCraft.STAGE_HEIGHT);
-        game.camera.focusOnXY(WonderCraft.WORLD_WIDTH/2+(WonderCraft.WORLD_HEIGHT/2*0.35), WonderCraft.WORLD_HEIGHT/2);
+        game.camera.focusOnXY(WonderCraft.WORLD_WIDTH / 2 + (WonderCraft.WORLD_HEIGHT / 2 * 0.35), WonderCraft.WORLD_HEIGHT / 2);
 
         game.time.advancedTiming = true;
 
         var seed = new Wonder.Random("TheSecretLifeOfWalterMitty");
+
+        // this.teamA = Wonder.buildTeam(game, game.cache.getJSON("teamA"));
+        // this.teamA.side = Wonder.TEAM_SIDE_LEFT;
+
+        //Wonder.initTeam(game, this.teamA);
 
         this.teamA = Wonder.buildTestTeam(seed, "red");
         this.teamB = Wonder.buildTestTeam(seed, "blue");
@@ -56,7 +63,7 @@ class WonderCraft {
         this.count++;
     }
 
-render = (game: Phaser.Game) => {
+    render = (game: Phaser.Game) => {
         this.teamA.render();
         this.teamB.render();
         if (this.count % 5 === 0) game.world.sort("y", Phaser.Group.SORT_ASCENDING);
