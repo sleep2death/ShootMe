@@ -135,12 +135,12 @@ var Wonder;
         19
     ];
     var DEBUG_COLOR_HUES = ["red", "orange", "yellow", "green", "blue", "purple", "pink"];
-    var ATTACK_RANGE;
     (function (ATTACK_RANGE) {
         ATTACK_RANGE[ATTACK_RANGE["MELEE"] = 20] = "MELEE";
         ATTACK_RANGE[ATTACK_RANGE["MEDIUM"] = 150] = "MEDIUM";
         ATTACK_RANGE[ATTACK_RANGE["LONG"] = 300] = "LONG";
-    })(ATTACK_RANGE || (ATTACK_RANGE = {}));
+    })(Wonder.ATTACK_RANGE || (Wonder.ATTACK_RANGE = {}));
+    var ATTACK_RANGE = Wonder.ATTACK_RANGE;
     var RANGES = [20 /* MELEE */, 150 /* MEDIUM */, 300 /* LONG */];
     var Team = (function () {
         function Team(id) {
@@ -206,6 +206,7 @@ var Wonder;
     Wonder.Team = Team;
     var Squad = (function () {
         function Squad(id, debug_color) {
+            if (debug_color === void 0) { debug_color = 0; }
             this.units = [];
             this.bodies = [];
             this.id = id;
@@ -230,6 +231,70 @@ var Wonder;
         return Squad;
     })();
     Wonder.Squad = Squad;
+    function buildTeam(game, data) {
+        var team = new Team(data.id);
+        var squadNumber = data.squads.length;
+        for (var i = 0; i < squadNumber; i++) {
+            var s_data = data.squads[i];
+            var squad = new Squad(s_data.id);
+            squad.position = s_data.position;
+            var hero = new Wonder.Hero(s_data.hero.id);
+            squad.addUnit(hero);
+            squad.hero = hero;
+            for (var j = 0; j < s_data.units.number; j++) {
+                var unit = new Wonder.Unit(s_data.units.id);
+                squad.addUnit(unit);
+            }
+            team.addSquad(squad);
+        }
+        return team;
+    }
+    Wonder.buildTeam = buildTeam;
+    function initTeam(game, team) {
+        var side = team.side;
+        var len = team.getSquadsNumber();
+        var squad_w = WonderCraft.WORLD_WIDTH / 14;
+        var squad_h = (WonderCraft.WORLD_HEIGHT - 10) / 5;
+        var unit_radius = 20;
+        var hero_radius = 24;
+        var padding = 10;
+        for (var i = 0; i < len; i++) {
+            var squad = team.squads[i];
+            var s_col = side == 0 ? squad.position % 4 : 3 - (squad.position % 4);
+            var s_row = Math.floor(squad.position / 4);
+            var s_x = side == 0 ? s_col * squad_w + squad_w : WonderCraft.WORLD_WIDTH - (s_col * squad_w + squad_w);
+            var s_y = s_row * squad_h + squad_h * 0.5 + 5;
+            var l = squad.getUnitsNumber();
+            var pos = 0;
+            var start_x = side == 0 ? s_x - hero_radius - padding : s_x + hero_radius + padding;
+            var start_y = s_y - 2 * (unit_radius + padding);
+            for (var j = 0; j < l; j++) {
+                var unit = squad.units[j];
+                var u_x;
+                var u_y;
+                if (j > 0) {
+                    var col = Math.floor(pos / 5);
+                    u_x = side == 0 ? start_x - col * (unit_radius + padding) : start_x + col * (unit_radius + padding);
+                    u_y = start_y + pos % 5 * (unit_radius + padding);
+                    pos++;
+                }
+                else {
+                    u_x = s_x;
+                    u_y = s_y;
+                }
+                addSprite(game, unit, side);
+                unit.agent.x = u_x;
+                unit.agent.y = u_y;
+            }
+        }
+    }
+    Wonder.initTeam = initTeam;
+    function addSprite(game, unit, side) {
+        var displayer = game.add.sprite(0, 0, "units", unit.id);
+        displayer.anchor.setTo(0.5, 0.5);
+        unit.isHero ? displayer.scale.setTo(0.85, 0.85) : displayer.scale.setTo(0.65, 0.65);
+        unit.display = displayer;
+    }
     function buildTestTeam(rnd, color_hue) {
         if (color_hue === void 0) { color_hue = null; }
         var team = new Team(rnd.nextUInt());
@@ -252,6 +317,8 @@ var Wonder;
             }
             var rc = RandomColor({ hue: team.debug_hue }).slice(1);
             squad.debug_color = parseInt("0x" + rc);
+            if (squad.position === 0)
+                console.log("got squad 0");
             team.addSquad(squad);
             team.seed = rnd;
         }
@@ -262,7 +329,7 @@ var Wonder;
         var side = team.side;
         var len = team.getSquadsNumber();
         var squad_w = WonderCraft.WORLD_WIDTH / 14;
-        var squad_h = (WonderCraft.WORLD_HEIGHT - 10) / 5;
+        var squad_h = (WonderCraft.WORLD_HEIGHT) / 5;
         var unit_radius = 18;
         var hero_radius = 22;
         var padding = 10;
@@ -271,7 +338,7 @@ var Wonder;
             var s_col = side == 0 ? squad.position % 4 : 3 - (squad.position % 4);
             var s_row = Math.floor(squad.position / 4);
             var s_x = side == 0 ? s_col * squad_w + squad_w : WonderCraft.WORLD_WIDTH - (s_col * squad_w + squad_w);
-            var s_y = s_row * squad_h + squad_h * 0.5 + 5;
+            var s_y = s_row * squad_h + squad_h * 0.5;
             var l = squad.getUnitsNumber();
             var pos = 0;
             var start_x = side == 0 ? s_x - hero_radius - padding : s_x + hero_radius + padding;
@@ -375,10 +442,10 @@ var Wonder;
                         this.unit.state = 1 /* MOVING */;
                     break;
                 case 1 /* MOVING */:
-                    if (this.unit.target && this.unit.target.state != -1 /* DEAD */) {
+                    if (this.unit.target && (this.unit.target.state != -1 /* DEAD */)) {
                         var distance = getUnitDistance(this.unit, this.unit.target);
                         var delta = distance - this.unit.range;
-                        if (delta > 0) {
+                        if (delta > 0 && (this.unit.squad.hero.state != 2 /* ATTACKING */ || this.unit.range == 20 /* MELEE */)) {
                             this.velocity = Wonder.normalize((this.unit.target.agent.x - this.x), (this.unit.target.agent.y - this.y)).mul(this.unit.speed);
                             var steer = steering(this.unit);
                             this.unit.move();
@@ -515,6 +582,8 @@ var WonderCraft = (function () {
         var _this = this;
         this.preload = function (game) {
             game.load.spritesheet("heroes", "assets/heroes.png", 35, 51);
+            game.load.json("teamA", "assets/data/TestTeamA.json");
+            game.load.atlasJSONHash("units", "assets/Units.png", "assets/Units.json");
         };
         this.create = function (game) {
             _this.game.camera.bounds = new Phaser.Rectangle(0, 0, WonderCraft.WORLD_WIDTH, WonderCraft.WORLD_HEIGHT);
@@ -552,7 +621,7 @@ var WonderCraft = (function () {
     WonderCraft.STAGE_WIDTH = 1200;
     WonderCraft.STAGE_HEIGHT = 670;
     WonderCraft.WORLD_WIDTH = 1400;
-    WonderCraft.WORLD_HEIGHT = 670;
+    WonderCraft.WORLD_HEIGHT = 760;
     return WonderCraft;
 })();
 window.onload = function () {

@@ -29,10 +29,10 @@ module Wonder {
                     //if the target is null, then wait...(all dead units are removed from the units array in next frame)
                     break;
                 case UNIT_STATES.MOVING:
-                    if (this.unit.target && this.unit.target.state != UNIT_STATES.DEAD) {
+                    if (this.unit.target && (this.unit.target.state != UNIT_STATES.DEAD)) {
                         var distance: number = getUnitDistance(this.unit, this.unit.target);
                         var delta: number = distance - this.unit.range;
-                        if (delta > 0) {
+                        if (delta > 0 && (this.unit.squad.hero.state != UNIT_STATES.ATTACKING || this.unit.range == ATTACK_RANGE.MELEE)) {
                             this.velocity = normalize((this.unit.target.agent.x - this.x), (this.unit.target.agent.y - this.y)).mul(this.unit.speed);
                             //seprate&cohesion from each other in this squad
                             var steer = steering(this.unit);
