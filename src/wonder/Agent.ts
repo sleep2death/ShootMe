@@ -22,6 +22,7 @@ module Wonder {
         }
 
         update(time: number) {
+                //console.log(this.unit.state);
             switch (this.unit.state) {
                 case UNIT_STATES.IDLE:
                     this.unit.target = findNextTarget(this.unit);
@@ -32,8 +33,9 @@ module Wonder {
                     if (this.unit.target && this.unit.target.state != UNIT_STATES.DEAD) {
                         var distance: number = getUnitDistance(this.unit, this.unit.target);
                         var delta: number = distance - this.unit.range;
-                        if (delta > 0 && (this.unit.squad.hero.state != UNIT_STATES.ATTACKING || this.unit.range == ATTACK_RANGE.MELEE)) {
-                            this.velocity = normalize((this.unit.target.agent.x - this.x), (this.unit.target.agent.y - this.y)).mul(this.unit.speed);
+                        //if (delta > 0 && (this.unit.squad.hero.state != UNIT_STATES.ATTACKING || this.unit.range == ATTACK_RANGE.MELEE)) {
+                        if (delta > 0) {
+                            this.velocity = normalize((this.unit.target.agent.x - this.x), (this.unit.target.agent.y - this.y));
                             //seprate&cohesion from each other in this squad
                             var steer = steering(this.unit);
                             this.unit.move();
@@ -79,7 +81,7 @@ module Wonder {
             //if unit's squad hero has a target, then find the target in the same squad
             if (!unit.isHero && unit.squad.hero.target) {
                 var targetSquad: Squad = unit.squad.hero.target.squad;
-                target = targetSquad.units[unit.position];
+                target = targetSquad.units[targetSquad.units.length - unit.position];
                 if (!target) target = targetSquad.units[0];
             } else {
                 //1. searching every squad
@@ -88,7 +90,7 @@ module Wonder {
                 //4. compare distance between unit and opponents, and return the nearest one
                 for (var i: number = 0; i < len; i++) {
                     squad = enemy.squads[i];
-                    var opponent: IUnit = squad.units[unit.position];
+                    var opponent: IUnit = squad.units[squad.units.length - unit.position];
                     if (!opponent) opponent = squad.units[0];
 
                     if (opponent) {
@@ -117,19 +119,23 @@ module Wonder {
     }
 
     function steering(unit: IUnit) {
-        var minSeparation = 40;
-        var maxCohesion = 80;
+        var minSeparation = 30;
+        var maxCohesion = 90;
 
+        //separation force
         var separation: Vec2 = new Vec2();
-        var separationScale: number = 0.05;
+        var separationScale: number = 0.15;
 
+        //cohesion force
         var cohesion: Vec2 = new Vec2();
-        var cohesionScale: number = 0.25;
+        var cohesionScale: number = 0.15;
 
         var len: number = unit.squad.getUnitsNumber();
         var centerOfMass: Vec2 = new Vec2();
 
+        //number of all neighbours need to be separating
         var s_neighboursCount: number = 0;
+        //separation neighbours count
         var c_neighboursCount: number = 0;
 
         for (var i: number = 0; i < len; i++) {

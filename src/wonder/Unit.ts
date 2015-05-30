@@ -63,7 +63,7 @@ module Wonder {
         range: number;
         armor: number;
         armor_type: number;
-        speed: number = 2;
+        speed: number;
 
         isHero: boolean = false;
 
@@ -93,6 +93,7 @@ module Wonder {
         }
 
         move() {
+            //this.agent.velocity = this.agent.velocity.normalize().mul(this.speed);
             this.agent.x += this.agent.velocity.x;
             this.agent.y += this.agent.velocity.y;
         }

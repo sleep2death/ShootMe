@@ -2,8 +2,8 @@
 class WonderCraft {
     "use strict";
 
-    static STAGE_WIDTH = 1200;
-    static STAGE_HEIGHT = 670;
+    static STAGE_WIDTH = 1400;
+    static STAGE_HEIGHT = 760;
 
     static WORLD_WIDTH = 1400;
     static WORLD_HEIGHT = 760;
@@ -21,36 +21,48 @@ class WonderCraft {
     preload = (game: Phaser.Game) => {
         game.load.spritesheet("heroes", "assets/heroes.png", 35, 51);
         game.load.json("teamA", "assets/data/TestTeamA.json");
+        game.load.json("teamB", "assets/data/TestTeamB.json");
         game.load.atlasJSONHash("units", "assets/Units.png", "assets/Units.json");
     }
 
     create = (game: Phaser.Game) => {
-        this.game.camera.bounds = new Phaser.Rectangle(0, 0, WonderCraft.WORLD_WIDTH, WonderCraft.WORLD_HEIGHT);
-        this.game.camera.roundPx = true;
-        this.game.camera.setSize(WonderCraft.STAGE_WIDTH, WonderCraft.STAGE_HEIGHT);
-        game.camera.focusOnXY(WonderCraft.WORLD_WIDTH / 2 + (WonderCraft.WORLD_HEIGHT / 2 * 0.35), WonderCraft.WORLD_HEIGHT / 2);
+        //this.game.camera.bounds = null;
+        //this.game.camera.roundPx = true;
+        //this.game.camera.setSize(WonderCraft.STAGE_WIDTH, WonderCraft.STAGE_HEIGHT);
+        //game.camera.focusOnXY(WonderCraft.WORLD_WIDTH / 2 + (WonderCraft.WORLD_HEIGHT / 2 * 0.35), WonderCraft.WORLD_HEIGHT / 2);
 
         game.time.advancedTiming = true;
 
         var seed = new Wonder.Random("TheSecretLifeOfWalterMitty");
 
-        // this.teamA = Wonder.buildTeam(game, game.cache.getJSON("teamA"));
-        // this.teamA.side = Wonder.TEAM_SIDE_LEFT;
+        this.teamA = Wonder.buildTeam(game, game.cache.getJSON("teamA"));
+        this.teamA.side = Wonder.TEAM_SIDE_LEFT;
 
-        //Wonder.initTeam(game, this.teamA);
+        Wonder.initTeam(game, this.teamA);
 
-        this.teamA = Wonder.buildTestTeam(seed, "red");
-        this.teamB = Wonder.buildTestTeam(seed, "blue");
+        this.teamB = Wonder.buildTeam(game, game.cache.getJSON("teamB"));
+        this.teamB.side = Wonder.TEAM_SIDE_RIGHT;
+
+        Wonder.initTeam(game, this.teamB);
+
         //make enemy, and for WAR!!!
         this.teamA.enemy = this.teamB;
         this.teamB.enemy = this.teamA;
 
-        this.teamA.side = Wonder.TEAM_SIDE_LEFT;
-        this.teamB.side = Wonder.TEAM_SIDE_RIGHT;
+        //game.camera.follow(this.teamA.squads[2].hero.display)
+
+        //this.teamA = Wonder.buildTestTeam(seed, "red");
+        //this.teamB = Wonder.buildTestTeam(seed, "blue");
+        //make enemy, and for WAR!!!
+        //this.teamA.enemy = this.teamB;
+        //this.teamB.enemy = this.teamA;
+
+        //this.teamA.side = Wonder.TEAM_SIDE_LEFT;
+        //this.teamB.side = Wonder.TEAM_SIDE_RIGHT;
 
 
-        Wonder.initDebugDraw(game, this.teamA);
-        Wonder.initDebugDraw(game, this.teamB);
+        //Wonder.initDebugDraw(game, this.teamA);
+        //Wonder.initDebugDraw(game, this.teamB);
     }
 
     //wait 2 seconds to start

@@ -21,14 +21,6 @@ module Wonder {
 
     var DEBUG_COLOR_HUES: Array<string>=["red","orange","yellow","green","blue","purple","pink"];
 
-    //attack ranges
-    export enum ATTACK_RANGE {
-        MELEE=20,
-        MEDIUM=150,
-        LONG=300
-    }
-    var RANGES: Array<number>=[ATTACK_RANGE.MELEE,ATTACK_RANGE.MEDIUM,ATTACK_RANGE.LONG];
-
     export class Team {
         id: number;
         //opponent team
@@ -193,10 +185,11 @@ module Wonder {
         //get all squads and units to draw
         for(var i: number=0;i<len;i++) {
             var squad: Squad=team.squads[i];
-            var s_col=side==0? squad.position%4:3-(squad.position%4);
+            var s_col=squad.position%4;
             var s_row=Math.floor(squad.position/4);
             var s_x=side==0? s_col*squad_w+squad_w:WonderCraft.WORLD_WIDTH-(s_col*squad_w+squad_w);
             var s_y=s_row*squad_h+squad_h*0.5+5;
+            //console.log(side,side==0? squad.position%4:3-(squad.position%4), s_x, s_y, s_col, s_row, squad_w, squad_h);
 
             var l: number=squad.getUnitsNumber();
             var pos: number=0;
@@ -230,100 +223,100 @@ module Wonder {
     }
 
     function addSprite(game: Phaser.Game,unit: IUnit,side: number) {
-        var displayer=game.add.sprite(0,0,"units",unit.id);
+        var displayer=game.add.sprite(0,0,"heroes",unit.id);
         displayer.anchor.setTo(0.5,0.5);
         unit.isHero? displayer.scale.setTo(0.85,0.85):displayer.scale.setTo(0.65,0.65);
         unit.display=displayer;
     }
 
-    export function buildTestTeam(rnd: Random,color_hue: string=null): Team {
-        var team=new Team(rnd.nextUInt());
-        var squad_number_range: number=rnd.nextRange(10,18);
-        color_hue=color_hue? color_hue:DEBUG_COLOR_HUES[rnd.nextRange(0,DEBUG_COLOR_HUES.length-1)];
-        team.debug_hue=color_hue;
-
-        rnd.shuffle(SQUAD_POSITIONS);
-        for(var i=0;i<squad_number_range;i++) {
-            var squad=new Squad(rnd.nextUInt(),0);
-            squad.position=SQUAD_POSITIONS[i];
-
-            var hero: Hero=new Hero(rnd.nextUInt());
-            //squad.setHero(hero);
-            hero.range=RANGES[rnd.nextRange(0,RANGES.length-1)];
-            squad.addUnit(hero);
-            squad.hero=hero;
-
-            var unit_number_range: number=rnd.nextRange(10,15);// two columns ~ three columns
-
-            for(var j=0;j<unit_number_range;j++) {
-                var unit=new Unit(j);
-                unit.range=hero.range;
-                squad.addUnit(unit);
-            }
-
-            var rc=(<string>RandomColor({ hue: team.debug_hue })).slice(1);
-            squad.debug_color=parseInt("0x"+rc);
-            if(squad.position === 0)console.log("got squad 0");
-
-            team.addSquad(squad);
-            team.seed=rnd;
-        }
-
-        return team;
-    }
-
-
-    export function initDebugDraw(game: Phaser.Game,team: Team) {
-        var side: number=team.side;
-        var len: number=team.getSquadsNumber();
-        var squad_w=WonderCraft.WORLD_WIDTH/14;
-        var squad_h=(WonderCraft.WORLD_HEIGHT)/5;
-        var unit_radius=18;
-        var hero_radius=22;
-        var padding=10;
-        //get all squads and units to draw
-        for(var i: number=0;i<len;i++) {
-            var squad: Squad=team.squads[i];
-            var s_col=side==0? squad.position%4:3-(squad.position%4);
-            var s_row=Math.floor(squad.position/4);
-            var s_x=side==0? s_col*squad_w+squad_w:WonderCraft.WORLD_WIDTH-(s_col*squad_w+squad_w);
-            var s_y=s_row*squad_h+squad_h*0.5;
-
-            var l: number=squad.getUnitsNumber();
-            var pos: number=0;
-
-            var start_x: number=side==0? s_x-hero_radius-padding:s_x+hero_radius+padding;
-            var start_y: number=s_y-2*(unit_radius+padding);
-
-            for(var j: number=0;j<l;j++) {
-                var unit: IUnit=squad.units[j];
-                var u_x: number;
-                var u_y: number;
-                if(j>0) {
-                    //unit
-                    var col: number=Math.floor(pos/5);
-
-                    u_x=side==0? start_x-col*(unit_radius+padding):start_x+col*(unit_radius+padding)
-                    u_y=start_y+pos%5*(unit_radius+padding);
-                    pos++;
-                } else {
-                    //hero
-                    u_x=s_x;
-                    u_y=s_y;
-                }
-
-                addDebugShape(game,unit,unit_radius,squad.debug_color,side);
-
-                unit.agent.x=u_x;
-                unit.agent.y=u_y;
-            }
-        }
-    }
-
-    function addDebugShape(game: Phaser.Game,unit: IUnit,radius: number,color: number,side: number) {
-        var displayer=game.add.sprite(0,0,"heroes",side==0? Math.floor(Math.random()*42):Math.floor(Math.random()*42+42));
-        displayer.anchor.setTo(0.5,0.5);
-        unit.isHero? displayer.scale.setTo(0.85,0.85):displayer.scale.setTo(0.65,0.65);
-        unit.display=displayer;
-    }
+    // export function buildTestTeam(rnd: Random,color_hue: string=null): Team {
+    //     var team=new Team(rnd.nextUInt());
+    //     var squad_number_range: number=rnd.nextRange(10,18);
+    //     color_hue=color_hue? color_hue:DEBUG_COLOR_HUES[rnd.nextRange(0,DEBUG_COLOR_HUES.length-1)];
+    //     team.debug_hue=color_hue;
+    //
+    //     rnd.shuffle(SQUAD_POSITIONS);
+    //     for(var i=0;i<squad_number_range;i++) {
+    //         var squad=new Squad(rnd.nextUInt(),0);
+    //         squad.position=SQUAD_POSITIONS[i];
+    //
+    //         var hero: Hero=new Hero(rnd.nextUInt());
+    //         //squad.setHero(hero);
+    //         hero.range=RANGES[rnd.nextRange(0,RANGES.length-1)];
+    //         squad.addUnit(hero);
+    //         squad.hero=hero;
+    //
+    //         var unit_number_range: number=rnd.nextRange(10,15);// two columns ~ three columns
+    //
+    //         for(var j=0;j<unit_number_range;j++) {
+    //             var unit=new Unit(j);
+    //             unit.range=hero.range;
+    //             squad.addUnit(unit);
+    //         }
+    //
+    //         var rc=(<string>RandomColor({ hue: team.debug_hue })).slice(1);
+    //         squad.debug_color=parseInt("0x"+rc);
+    //         if(squad.position === 0)console.log("got squad 0");
+    //
+    //         team.addSquad(squad);
+    //         team.seed=rnd;
+    //     }
+    //
+    //     return team;
+    // }
+    //
+    //
+    // export function initDebugDraw(game: Phaser.Game,team: Team) {
+    //     var side: number=team.side;
+    //     var len: number=team.getSquadsNumber();
+    //     var squad_w=WonderCraft.WORLD_WIDTH/14;
+    //     var squad_h=(WonderCraft.WORLD_HEIGHT)/5;
+    //     var unit_radius=18;
+    //     var hero_radius=22;
+    //     var padding=10;
+    //     //get all squads and units to draw
+    //     for(var i: number=0;i<len;i++) {
+    //         var squad: Squad=team.squads[i];
+    //         var s_col=side==0? squad.position%4:3-(squad.position%4);
+    //         var s_row=Math.floor(squad.position/4);
+    //         var s_x=side==0? s_col*squad_w+squad_w:WonderCraft.WORLD_WIDTH-(s_col*squad_w+squad_w);
+    //         var s_y=s_row*squad_h+squad_h*0.5;
+    //
+    //         var l: number=squad.getUnitsNumber();
+    //         var pos: number=0;
+    //
+    //         var start_x: number=side==0? s_x-hero_radius-padding:s_x+hero_radius+padding;
+    //         var start_y: number=s_y-2*(unit_radius+padding);
+    //
+    //         for(var j: number=0;j<l;j++) {
+    //             var unit: IUnit=squad.units[j];
+    //             var u_x: number;
+    //             var u_y: number;
+    //             if(j>0) {
+    //                 //unit
+    //                 var col: number=Math.floor(pos/5);
+    //
+    //                 u_x=side==0? start_x-col*(unit_radius+padding):start_x+col*(unit_radius+padding)
+    //                 u_y=start_y+pos%5*(unit_radius+padding);
+    //                 pos++;
+    //             } else {
+    //                 //hero
+    //                 u_x=s_x;
+    //                 u_y=s_y;
+    //             }
+    //
+    //             addDebugShape(game,unit,unit_radius,squad.debug_color,side);
+    //
+    //             unit.agent.x=u_x;
+    //             unit.agent.y=u_y;
+    //         }
+    //     }
+    // }
+    //
+    // function addDebugShape(game: Phaser.Game,unit: IUnit,radius: number,color: number,side: number) {
+    //     var displayer=game.add.sprite(0,0,"heroes",side==0? Math.floor(Math.random()*42):Math.floor(Math.random()*42+42));
+    //     displayer.anchor.setTo(0.5,0.5);
+    //     unit.isHero? displayer.scale.setTo(0.85,0.85):displayer.scale.setTo(0.65,0.65);
+    //     unit.display=displayer;
+    // }
 }
